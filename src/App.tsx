@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import CustomOrders from './pages/CustomOrders';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import Header from './components/Header';
@@ -16,13 +17,32 @@ import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Admin from './pages/Admin';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
+import ShippingPolicy from './pages/ShippingPolicy';
+
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -8 },
 };
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (!user) return <Navigate to="/profile" replace />;
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -41,11 +61,25 @@ function AnimatedRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/custom-orders" element={<CustomOrders />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+<Route path="/terms" element={<Terms />} />
+<Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          
+          />
         </Routes>
       </motion.div>
     </AnimatePresence>
   );
 }
+
 export default function App() {
   return (
     <BrowserRouter>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, Instagram, Mail, MapPin, Phone, Send, CheckCircle } from 'lucide-react';
 
-const WHATSAPP = '971501234567';
+const WHATSAPP = '917056713252';
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
@@ -10,9 +10,10 @@ export default function Contact() {
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+      e.preventDefault();
     setSending(true);
-    await new Promise(r => setTimeout(r, 1000));
+    const msg = `Hi Wildcore Fragrances!\n\nName: ${form.name}\nEmail: ${form.email}\nSubject: ${form.subject}\n\n${form.message}`;
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
     setSending(false);
     setSent(true);
     setForm({ name: '', email: '', subject: '', message: '' });
@@ -150,7 +151,7 @@ export default function Contact() {
 
             {/* Instagram */}
             <a
-              href="https://instagram.com/wildcorefragrances"
+              href="https://instagram.com/wild_core_fragrances"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-start gap-4 glass glass-hover rounded-2xl p-5 group"
@@ -184,7 +185,7 @@ export default function Contact() {
                 <Phone size={20} className="text-[var(--text-muted)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text)]">+971 50 123 4567</p>
+                <p className="text-sm font-semibold text-[var(--text)]">+917056713252</p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">Sun – Thu, 9am – 6pm GST</p>
               </div>
             </div>
@@ -195,7 +196,7 @@ export default function Contact() {
                 <MapPin size={20} className="text-[var(--text-muted)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text)]">Dubai, UAE</p>
+                <p className="text-sm font-semibold text-[var(--text)]">Panipat, India</p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">Worldwide shipping available</p>
               </div>
             </div>

@@ -21,20 +21,21 @@ export default function LoadingScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <motion.div
-              className="w-16 h-16 border-2 border-gold rounded-full flex items-center justify-center"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            >
-              <div className="w-3 h-3 bg-gold rounded-full" />
-            </motion.div>
+            <motion.img
+              src="/images/Logo.jpeg"
+              alt="Wildcore Logo"
+              className="w-20 h-20 object-contain"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            />
             <motion.h1
               className="text-3xl font-serif text-gold tracking-[0.3em] uppercase"
               initial={{ letterSpacing: '0.1em', opacity: 0 }}
               animate={{ letterSpacing: '0.3em', opacity: 1 }}
               transition={{ duration: 1, delay: 0.4 }}
             >
-              Wildcore
+              {/* Wildcore */}
             </motion.h1>
             <motion.p
               className="text-xs tracking-[0.5em] text-[var(--text-muted)] uppercase"

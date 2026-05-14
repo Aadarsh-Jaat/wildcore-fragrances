@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Instagram, MessageCircle, Mail, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
-const WHATSAPP = '971501234567';
+const WHATSAPP = '917056713252';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-3 mt-5">
               <a
-                href="https://instagram.com"
+                href="https://instagram.com/wild_core_fragrances"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 glass glass-hover rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-gold transition-colors"
@@ -48,7 +48,7 @@ export default function Footer() {
                 <MessageCircle size={16} />
               </a>
               <a
-                href="mailto:hello@wildcorefragrances.com"
+                href="mailto:wildcoreessentials@gmail.com"
                 className="w-9 h-9 glass glass-hover rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-gold transition-colors"
               >
                 <Mail size={16} />
@@ -99,7 +99,7 @@ export default function Footer() {
               New drops, exclusive offers, and wild stories — straight to your inbox.
             </p>
             {subscribed ? (
-              <p className="text-sm text-gold font-medium">You're in. Welcome to the wild.</p>
+              <p className="text-sm text-gold font-medium">You're in. Welcome to the wildcore.</p>
             ) : (
               <form onSubmit={handleSubscribe} className="flex gap-2">
                 <input
@@ -126,10 +126,27 @@ export default function Footer() {
             © 2025 Wildcore Fragrances. All rights reserved.
           </p>
           <div className="flex gap-4 text-xs text-[var(--text-muted)]">
-            <span className="hover:text-gold cursor-pointer transition-colors">Privacy Policy</span>
-            <span className="hover:text-gold cursor-pointer transition-colors">Terms of Service</span>
-            <span className="hover:text-gold cursor-pointer transition-colors">Shipping Policy</span>
-          </div>
+  <Link
+    to="/privacy-policy"
+    className="hover:text-gold transition-colors"
+  >
+    Privacy Policy
+  </Link>
+
+  <Link
+    to="/terms"
+    className="hover:text-gold transition-colors"
+  >
+    Terms of Service
+  </Link>
+
+  <Link
+    to="/shipping-policy"
+    className="hover:text-gold transition-colors"
+  >
+    Shipping Policy
+  </Link>
+</div>
         </div>
       </div>
     </footer>

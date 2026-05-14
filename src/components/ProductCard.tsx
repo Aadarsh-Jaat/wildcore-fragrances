@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Tilt from 'react-parallax-tilt';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Eye, Star } from 'lucide-react';
-import { Product } from '../data/products';
+import type { Product } from '../services/productService';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
@@ -17,15 +17,18 @@ export default function ProductCard({ product, delay = 0 }: Props) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.volumes[1].price,
-      image: product.image,
-      volume: product.volumes[1].ml,
-      quantity: 1,
-    });
+    e.stopPropagation();const selectedVolume = product.volumes?.[1] || product.volumes?.[0];
+
+if (!selectedVolume) return;
+
+addItem({
+  id: product.id,
+  name: product.name,
+  price: selectedVolume.price,
+  image: product.image,
+  volume: selectedVolume.ml,
+  quantity: 1,
+});
     addToast(`${product.name} added to cart`);
   };
 
@@ -48,6 +51,7 @@ export default function ProductCard({ product, delay = 0 }: Props) {
       >
         <Link to={`/product/${product.id}`} className="block group">
           <div className="glass glass-hover rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_40px_rgba(201,168,76,0.12)]">
+            {/* Image */}
             <div className="relative overflow-hidden aspect-[3/4] bg-[var(--bg3)]">
               <img
                 src={product.image}
@@ -59,6 +63,7 @@ export default function ProductCard({ product, delay = 0 }: Props) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
+              {/* Badges */}
               <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                 {product.bestseller && (
                   <span className="text-[10px] font-semibold tracking-wider uppercase bg-gold text-black px-2 py-0.5 rounded-md">
@@ -72,6 +77,7 @@ export default function ProductCard({ product, delay = 0 }: Props) {
                 )}
               </div>
 
+              {/* Hover actions */}
               <div className="absolute bottom-3 left-3 right-3 flex gap-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                 <button
                   onClick={handleAddToCart}
@@ -90,6 +96,7 @@ export default function ProductCard({ product, delay = 0 }: Props) {
               </div>
             </div>
 
+            {/* Info */}
             <div className="p-4">
               <p className="text-[10px] tracking-[0.25em] uppercase text-[var(--text-muted)] mb-1">
                 {product.category}
@@ -102,7 +109,7 @@ export default function ProductCard({ product, delay = 0 }: Props) {
               </p>
               <div className="flex items-center justify-between mt-3">
                 <span className="font-semibold text-gold text-sm">
-                  From ${product.volumes[0].price}
+                  From ₹{product.volumes?.[0]?.price || 0}
                 </span>
                 <div className="flex items-center gap-1">
                   <Star size={11} fill="#C9A84C" className="text-gold" />
