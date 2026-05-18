@@ -36,6 +36,11 @@ export default function ProductDetail() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  // Add this useEffect to scroll to top when product page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]); // Runs when product ID changes
+  
   useEffect(() => {
     async function loadProduct() {
       if (!id) return;

@@ -39,8 +39,8 @@ export const products: Product[] = [
       base: ['Leathery', 'Chestnut'],
     },
     volumes: [
-      { ml: 30, price: 300 },
-      { ml: 50, price: 500 },
+      { ml: 8, price: 100 },
+      { ml: 30, price: 400 },
       { ml: 100, price: 900 },
     ],
     description: 'A bold, smoky fragrance that commands attention. Wanted X opens with a sharp spice kick before settling into a rich woody heart, leaving a trail of warm amber and dark musk.',

@@ -1,3 +1,4 @@
+// src/pages/Home.tsx
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -95,7 +96,7 @@ function ParticleCanvas() {
 
 // Marquee Banner
 function MarqueeBanner() {
-  const text = 'WILDCORE FRAGRANCES  •  WEAR THE WILD  •  CRAFTED FOR THE UNTAMED  •  ';
+  const text = 'SMELL EXPENSIVE. STAY WILD.  •  BUY 2 GET 10% OFF  •  FREE SHIPPING PAN INDIA  •  ';
   return (
     <div className="bg-gold py-3 overflow-hidden">
       <div className="animate-marquee whitespace-nowrap">
@@ -202,9 +203,6 @@ function ReelsSection() {
         '/images/1reel.png',
       title: 'Wildcore Signature Reel',
     },
-
-    // FUTURE REELS
-
     {
       id: '2',
       link: 'https://www.instagram.com/reel/DP5oP8fguKm/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
@@ -212,7 +210,6 @@ function ReelsSection() {
         '/images/2reel.png',
       title: 'Winter Wear',
     },
-
     {
       id: '3',
       link: 'https://www.instagram.com/reel/DR_hcQoiVU7/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
@@ -220,7 +217,6 @@ function ReelsSection() {
         '/images/3reel.png',
       title: 'For Her',
     },
-
     {
       id: '4',
       link: 'https://www.instagram.com/reel/DMSlaqpPRYE/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
@@ -387,130 +383,163 @@ export default function Home() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
 
-useEffect(() => {
-  async function loadProducts() {
-    const data = await getProducts();
-    setProducts(data);
-  }
+  useEffect(() => {
+    async function loadProducts() {
+      const data = await getProducts();
+      setProducts(data);
+    }
 
-  loadProducts();
-}, []);
+    loadProducts();
+  }, []);
+
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
-  const featured = products.filter(p => p.bestseller).slice(0, 4);
+  const newArrivals = products.filter(p => p.newArrival).slice(0, 4);
+  const bestsellers = products.filter(p => p.bestseller).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-{/* HERO SECTION */}
-<section
-  ref={heroRef}
-  className="relative min-h-screen pt-32 md:pt-28 pb-20 flex items-center justify-center overflow-hidden bg-gradient-to-b from-black via-[#0d0d0d] to-[var(--bg)]"
->
-  {/* GOLD GLOW */}
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,168,76,0.12),transparent_55%)]" />
+      {/* HERO SECTION */}
+      <section
+        ref={heroRef}
+        className="relative min-h-screen pt-32 md:pt-28 pb-20 flex items-center justify-center overflow-hidden bg-gradient-to-b from-black via-[#0d0d0d] to-[var(--bg)]"
+      >
+        {/* GOLD GLOW */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,168,76,0.12),transparent_55%)]" />
 
-  {/* PARTICLES */}
-  <div className="absolute inset-0 overflow-hidden">
-    {[...Array(20)].map((_, i) => (
-      <span
-        key={i}
-        className="absolute h-[2px] w-[2px] rounded-full bg-gold/40"
-        style={{
-          top: `${Math.random() * 100}%`,
-          left: `${Math.random() * 100}%`,
-        }}
-      />
-    ))}
-  </div>
+        {/* PARTICLES */}
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(20)].map((_, i) => (
+            <span
+              key={i}
+              className="absolute h-[2px] w-[2px] rounded-full bg-gold/40"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+              }}
+            />
+          ))}
+        </div>
 
-  {/* CONTENT */}
-  <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto">
-    
-    {/* TOP TEXT */}
-    <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] uppercase text-gold mb-5 text-center px-4">
-      Luxury Fragrances Crafted For The Untamed
-    </p>
+        {/* CONTENT */}
+        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto">
+          
+          {/* TOP TEXT */}
+          <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] uppercase text-gold mb-5 text-center px-4">
+            Luxury Fragrances Crafted For The Untamed
+          </p>
 
-    {/* PERFUME IMAGE */}
-    <div className="relative mb-6">
-      <div className="absolute inset-0 blur-3xl bg-gold/20 rounded-full scale-125" />
+          {/* PERFUME IMAGE */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 blur-3xl bg-gold/20 rounded-full scale-125" />
 
-      <img
-        src="/images/hero.png"
-        alt="Wildcore Perfume"
-        className="relative w-44 sm:w-56 md:w-64 drop-shadow-[0_0_35px_rgba(201,168,76,0.25)]"
-      />
-    </div>
+            <img
+              src="/images/hero.png"
+              alt="Wildcore Perfume"
+              className="relative w-44 sm:w-56 md:w-64 drop-shadow-[0_0_35px_rgba(201,168,76,0.25)]"
+            />
+          </div>
 
-    {/* MAIN HEADING */}
-    <h1 className="font-serif leading-none tracking-tight mb-6">
-      <span className="block text-6xl sm:text-7xl md:text-8xl text-white">
-        Wear
-      </span>
+          {/* MAIN HEADING */}
+          <h1 className="font-serif leading-none tracking-tight mb-6">
+            <span className="block text-6xl sm:text-7xl md:text-8xl text-white">
+              Wear
+            </span>
 
-      <span className="block text-6xl sm:text-7xl md:text-8xl text-gold">
-        The
-      </span>
+            <span className="block text-6xl sm:text-7xl md:text-8xl text-gold">
+              The
+            </span>
 
-      <span className="block italic text-6xl sm:text-7xl md:text-8xl text-white">
-        Wild
-      </span>
-    </h1>
+            <span className="block italic text-6xl sm:text-7xl md:text-8xl text-white">
+              Wild
+            </span>
+          </h1>
 
-    {/* DESCRIPTION */}
-    <p className="max-w-xl text-sm sm:text-base md:text-lg text-white/60 leading-relaxed mb-10">
-      Premium niche fragrances inspired by royalty,
-      rebellion, ocean storms, and wild instinct.
-    </p>
+          {/* DESCRIPTION */}
+          <p className="max-w-xl text-sm sm:text-base md:text-lg text-white/60 leading-relaxed mb-10">
+            Premium niche fragrances inspired by royalty,
+            rebellion, ocean storms, and wild instinct.
+          </p>
 
-{/* BUTTONS */}
-<div className="flex flex-col sm:flex-row gap-4">
-  
-  {/* SHOP BUTTON */}
-  <button
-    onClick={() => navigate('/shop')}
-    className="bg-gold hover:bg-[#d6b45c] text-black font-semibold px-8 py-4 rounded-2xl transition-all duration-300"
-  >
-    Shop Collection
-  </button>
+          {/* BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* SHOP BUTTON */}
+            <button
+              onClick={() => navigate('/shop')}
+              className="bg-gold hover:bg-[#d6b45c] text-black font-semibold px-8 py-4 rounded-2xl transition-all duration-300"
+            >
+              Shop Collection
+            </button>
 
-  {/* BEST SELLERS BUTTON */}
-  <button
-  onClick={() => {
-    setTimeout(() => {
-      document.getElementById('best-sellers')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }, 100);
-  }}
-  className="border border-gold/20 hover:border-gold/50 text-white px-8 py-4 rounded-2xl backdrop-blur-sm transition-all duration-300"
->
-  Best Sellers
-</button>
+            {/* BEST SELLERS BUTTON */}
+            <button
+              onClick={() => {
+                setTimeout(() => {
+                  document.getElementById('new-arrivals')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  });
+                }, 100);
+              }}
+              className="border border-gold/20 hover:border-gold/50 text-white px-8 py-4 rounded-2xl backdrop-blur-sm transition-all duration-300"
+            >
+              New Arrivals
+            </button>
+          </div>
 
-</div>
+          {/* SCROLL */}
+          <div className="mt-16 flex flex-col items-center gap-3 opacity-60">
+            <div className="h-12 w-[1px] bg-gold/40" />
+            <span className="text-[10px] tracking-[0.4em] uppercase text-gold">
+              Scroll
+            </span>
+          </div>
+        </div>
+      </section>
 
-    {/* SCROLL */}
-    <div className="mt-16 flex flex-col items-center gap-3 opacity-60">
-      <div className="h-12 w-[1px] bg-gold/40" />
-      <span className="text-[10px] tracking-[0.4em] uppercase text-gold">
-        Scroll
-      </span>
-    </div>
-  </div>
-</section>
       {/* Marquee */}
       <MarqueeBanner />
 
-{/* Featured Products */}
-<section
-  id="best-sellers"
-  className="py-24 px-4 sm:px-6 scroll-mt-28"
->
+      {/* New Arrivals Section - First */}
+      <section
+        id="new-arrivals"
+        className="py-24 px-4 sm:px-6 scroll-mt-28"
+      >
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            className="flex items-end justify-between mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div>
+              <p className="text-xs tracking-[0.4em] text-gold uppercase mb-2">Fresh Drops</p>
+              <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)]">
+                New Arrivals
+              </h2>
+            </div>
+            <Link
+              to="/shop?sort=new"
+              className="hidden sm:flex items-center gap-2 text-sm text-gold hover:text-gold-light transition-colors group"
+            >
+              Shop All <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {newArrivals.map((p, i) => (
+              <ProductCard key={p.id} product={p} delay={i * 0.1} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Bestsellers Section - Second */}
+      <section className="py-24 px-4 sm:px-6 bg-[var(--bg2)]">
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="flex items-end justify-between mb-12"
@@ -534,15 +563,18 @@ useEffect(() => {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {featured.map((p, i) => (
+            {bestsellers.map((p, i) => (
               <ProductCard key={p.id} product={p} delay={i * 0.1} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Collections */}
-      <section className="py-20 px-4 sm:px-6 bg-[var(--bg2)]">
+      {/* Instagram Reels Section - Third */}
+      <ReelsSection />
+
+      {/* Collections Section - Fourth */}
+      <section className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="text-center mb-14"
@@ -591,7 +623,70 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Brand Story Snippet */}
+      {/* Testimonials Section - Fifth */}
+      <div className="bg-[var(--bg2)]">
+        <TestimonialsSection />
+      </div>
+
+      {/* B2B Section - Sixth */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="glass rounded-[2rem] p-8 md:p-14 overflow-hidden relative">
+            <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-gold to-transparent pointer-events-none" />
+
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <p className="text-xs tracking-[0.4em] text-gold uppercase mb-4">
+                  Wildcore B2B
+                </p>
+
+                <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)] leading-tight mb-5">
+                  Custom Fragrance Manufacturing
+                </h2>
+
+                <p className="text-[var(--text-muted)] leading-relaxed mb-8 max-w-xl">
+                  Private-label perfumes, branded fragrance cards, and car hanging perfumes for clothing shops, detailing studios, and businesses.
+                </p>
+
+                <a
+                  href="/custom-orders"
+                  className="inline-flex items-center justify-center bg-gold text-black font-semibold px-6 py-3 rounded-xl hover:bg-gold-light transition-all"
+                >
+                  Explore B2B Services
+                </a>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="glass rounded-2xl p-6">
+                  <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
+                    Clothing Stores
+                  </h3>
+
+                  <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <li>• Branded fragrance cards</li>
+                    <li>• Customer giveaway perfumes</li>
+                    <li>• Luxury shop branding</li>
+                  </ul>
+                </div>
+
+                <div className="glass rounded-2xl p-6">
+                  <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
+                    Car Showrooms
+                  </h3>
+
+                  <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+                    <li>• Car hanging perfumes</li>
+                    <li>• Showroom branding</li>
+                    <li>• Bulk fragrance supply</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Brand Story Section - Seventh */}
       <section className="py-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -653,102 +748,10 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Reels */}
-      <ReelsSection />
-
-      {/* Testimonials */}
-      <section className="bg-[var(--bg2)]">
-        <TestimonialsSection />
-      </section>
-
-      {/* New Arrivals */}
-      <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="flex items-end justify-between mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div>
-              <p className="text-xs tracking-[0.4em] text-gold uppercase mb-2">Fresh Drops</p>
-              <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)]">New Arrivals</h2>
-            </div>
-            <Link to="/shop?sort=new" className="hidden sm:flex items-center gap-2 text-sm text-gold hover:text-gold-light transition-colors group">
-              See All <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </motion.div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {products.filter(p => p.newArrival).map((p, i) => (
-              <ProductCard key={p.id} product={p} delay={i * 0.1} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter */}
+      {/* Newsletter Section - Eighth */}
       <div className="bg-[var(--bg2)]">
         <NewsletterSection />
       </div>
-      <section className="py-24">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6">
-    <div className="glass rounded-[2rem] p-8 md:p-14 overflow-hidden relative">
-
-      <div className="absolute inset-0 opacity-10 bg-gradient-to-r from-gold to-transparent pointer-events-none" />
-
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-
-        <div>
-          <p className="text-xs tracking-[0.4em] text-gold uppercase mb-4">
-            Wildcore B2B
-          </p>
-
-          <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)] leading-tight mb-5">
-            Custom Fragrance Manufacturing
-          </h2>
-
-          <p className="text-[var(--text-muted)] leading-relaxed mb-8 max-w-xl">
-            Private-label perfumes, branded fragrance cards, and car hanging perfumes for clothing shops, detailing studios, and businesses.
-          </p>
-
-          <a
-            href="/custom-orders"
-            className="inline-flex items-center justify-center bg-gold text-black font-semibold px-6 py-3 rounded-xl hover:bg-gold-light transition-all"
-          >
-            Explore B2B Services
-          </a>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="glass rounded-2xl p-6">
-            <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
-              Clothing Stores
-            </h3>
-
-            <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-              <li>• Branded fragrance cards</li>
-              <li>• Customer giveaway perfumes</li>
-              <li>• Luxury shop branding</li>
-            </ul>
-          </div>
-
-          <div className="glass rounded-2xl p-6">
-            <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
-              Car Showrooms
-            </h3>
-
-            <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-              <li>• Car hanging perfumes</li>
-              <li>• Showroom branding</li>
-              <li>• Bulk fragrance supply</li>
-            </ul>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
     </div>
   );
 }

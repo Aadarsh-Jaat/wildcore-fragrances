@@ -74,8 +74,8 @@ const emptyProductForm: ProductForm = {
     base: [],
   },
   volumes: [
+    { ml: 8, price: 0 },
     { ml: 30, price: 0 },
-    { ml: 50, price: 0 },
     { ml: 100, price: 0 },
   ],
   rating: 4.5,

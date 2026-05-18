@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import BackToTop from './components/BackToTop';
 import ToastContainer from './components/ToastContainer';
+import ScrollToTop from './components/ScrollToTop'; 
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -21,6 +22,7 @@ import Admin from './pages/Admin';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import ShippingPolicy from './pages/ShippingPolicy';
+
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -83,6 +85,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+       <ScrollToTop /> 
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
