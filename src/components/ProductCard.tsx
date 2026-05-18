@@ -1,3 +1,4 @@
+// src/components/ProductCard.tsx
 import { Link } from 'react-router-dom';
 import Tilt from 'react-parallax-tilt';
 import { motion } from 'framer-motion';
@@ -17,18 +18,19 @@ export default function ProductCard({ product, delay = 0 }: Props) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();const selectedVolume = product.volumes?.[1] || product.volumes?.[0];
+    e.stopPropagation();
+    const selectedVolume = product.volumes?.[1] || product.volumes?.[0];
 
-if (!selectedVolume) return;
+    if (!selectedVolume) return;
 
-addItem({
-  id: product.id,
-  name: product.name,
-  price: selectedVolume.price,
-  image: product.image,
-  volume: selectedVolume.ml,
-  quantity: 1,
-});
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: selectedVolume.price,
+      image: product.image,
+      volume: selectedVolume.ml,
+      quantity: 1,
+    });
     addToast(`${product.name} added to cart`);
   };
 
@@ -57,9 +59,6 @@ addItem({
                 src={product.image}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108"
-                style={{ transform: 'scale(1)' }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -97,23 +96,23 @@ addItem({
             </div>
 
             {/* Info */}
-            <div className="p-4">
-              <p className="text-[10px] tracking-[0.25em] uppercase text-[var(--text-muted)] mb-1">
+            <div className="p-3 sm:p-4">
+              <p className="text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.25em] uppercase text-[var(--text-muted)] mb-1">
                 {product.category}
               </p>
-              <h3 className="font-serif text-base font-semibold text-[var(--text)] group-hover:text-gold transition-colors leading-snug">
+              <h3 className="font-serif text-sm sm:text-base font-semibold text-[var(--text)] group-hover:text-gold transition-colors leading-snug">
                 {product.name}
               </h3>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed line-clamp-1">
+              <p className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed line-clamp-1">
                 {product.tagline}
               </p>
-              <div className="flex items-center justify-between mt-3">
-                <span className="font-semibold text-gold text-sm">
-                  From ₹{product.volumes?.[0]?.price || 0}
+              <div className="flex items-center justify-between mt-2 sm:mt-3">
+                <span className="font-semibold text-gold text-xs sm:text-sm">
+                  ₹{product.volumes?.[0]?.price || 0}
                 </span>
-                <div className="flex items-center gap-1">
-                  <Star size={11} fill="#C9A84C" className="text-gold" />
-                  <span className="text-xs text-[var(--text-muted)]">{product.rating}</span>
+                <div className="flex items-center gap-0.5 sm:gap-1">
+                  <Star size={10} fill="#C9A84C" className="text-gold" />
+                  <span className="text-[10px] sm:text-xs text-[var(--text-muted)]">{product.rating}</span>
                 </div>
               </div>
             </div>

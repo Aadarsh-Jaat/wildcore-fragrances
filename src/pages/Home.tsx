@@ -402,103 +402,105 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-      {/* HERO SECTION */}
-      <section
-        ref={heroRef}
-        className="relative min-h-screen pt-32 md:pt-28 pb-20 flex items-center justify-center overflow-hidden bg-gradient-to-b from-black via-[#0d0d0d] to-[var(--bg)]"
+  
+
+{/* HERO SECTION */}
+<section
+  ref={heroRef}
+  className="relative min-h-screen pt-32 md:pt-28 pb-20 flex items-center justify-center overflow-hidden bg-gradient-to-b from-black via-[#0d0d0d] to-[var(--bg)]"
+>
+  {/* GOLD GLOW */}
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,168,76,0.12),transparent_55%)]" />
+
+  {/* PARTICLES */}
+  <div className="absolute inset-0 overflow-hidden">
+    {[...Array(20)].map((_, i) => (
+      <span
+        key={i}
+        className="absolute h-[2px] w-[2px] rounded-full bg-gold/40"
+        style={{
+          top: `${Math.random() * 100}%`,
+          left: `${Math.random() * 100}%`,
+        }}
+      />
+    ))}
+  </div>
+
+  {/* CONTENT - FIXED CENTERING */}
+  <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 sm:px-6 max-w-5xl mx-auto w-full">
+    
+    {/* TOP TEXT */}
+    <p className="text-[8px] xs:text-[9px] sm:text-xs tracking-[0.2em] xs:tracking-[0.25em] sm:tracking-[0.45em] uppercase text-gold mb-4 sm:mb-5 text-center">
+      Luxury Fragrances Crafted For The Untamed
+    </p>
+
+    {/* PERFUME IMAGE */}
+    <div className="relative mb-5 sm:mb-6">
+      <div className="absolute inset-0 blur-3xl bg-gold/20 rounded-full scale-125" />
+
+      <img
+        src="/images/hero.png"
+        alt="Wildcore Perfume"
+        className="relative w-32 xs:w-40 sm:w-56 md:w-64 mx-auto drop-shadow-[0_0_35px_rgba(201,168,76,0.25)]"
+      />
+    </div>
+
+    {/* MAIN HEADING */}
+    <h1 className="font-serif leading-[1.1] tracking-tight mb-5 sm:mb-6 text-center">
+      <span className="block text-5xl xs:text-6xl sm:text-7xl md:text-8xl text-white">
+        Wear
+      </span>
+
+      <span className="block text-5xl xs:text-6xl sm:text-7xl md:text-8xl text-gold">
+        The
+      </span>
+
+      <span className="block italic text-5xl xs:text-6xl sm:text-7xl md:text-8xl text-white">
+        Wild
+      </span>
+    </h1>
+
+    {/* DESCRIPTION */}
+    <p className="max-w-xl text-xs xs:text-sm sm:text-base md:text-lg text-white/60 leading-relaxed mb-8 sm:mb-10 text-center px-2">
+      Premium niche fragrances inspired by royalty,
+      rebellion, ocean storms, and wild instinct.
+    </p>
+
+    {/* BUTTONS */}
+    <div className="flex flex-col xs:flex-row gap-3 sm:gap-4 justify-center">
+      {/* SHOP BUTTON */}
+      <button
+        onClick={() => navigate('/shop')}
+        className="bg-gold hover:bg-[#d6b45c] text-black font-semibold px-6 xs:px-8 py-3 sm:py-4 rounded-2xl transition-all duration-300 text-sm sm:text-base"
       >
-        {/* GOLD GLOW */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,168,76,0.12),transparent_55%)]" />
+        Shop Collection
+      </button>
 
-        {/* PARTICLES */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <span
-              key={i}
-              className="absolute h-[2px] w-[2px] rounded-full bg-gold/40"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-              }}
-            />
-          ))}
-        </div>
+      {/* NEW ARRIVALS BUTTON */}
+      <button
+        onClick={() => {
+          setTimeout(() => {
+            document.getElementById('new-arrivals')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }, 100);
+        }}
+        className="border border-gold/20 hover:border-gold/50 text-white px-6 xs:px-8 py-3 sm:py-4 rounded-2xl backdrop-blur-sm transition-all duration-300 text-sm sm:text-base"
+      >
+        New Arrivals
+      </button>
+    </div>
 
-        {/* CONTENT */}
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto">
-          
-          {/* TOP TEXT */}
-          <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] uppercase text-gold mb-5 text-center px-4">
-            Luxury Fragrances Crafted For The Untamed
-          </p>
-
-          {/* PERFUME IMAGE */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 blur-3xl bg-gold/20 rounded-full scale-125" />
-
-            <img
-              src="/images/hero.png"
-              alt="Wildcore Perfume"
-              className="relative w-44 sm:w-56 md:w-64 drop-shadow-[0_0_35px_rgba(201,168,76,0.25)]"
-            />
-          </div>
-
-          {/* MAIN HEADING */}
-          <h1 className="font-serif leading-none tracking-tight mb-6">
-            <span className="block text-6xl sm:text-7xl md:text-8xl text-white">
-              Wear
-            </span>
-
-            <span className="block text-6xl sm:text-7xl md:text-8xl text-gold">
-              The
-            </span>
-
-            <span className="block italic text-6xl sm:text-7xl md:text-8xl text-white">
-              Wild
-            </span>
-          </h1>
-
-          {/* DESCRIPTION */}
-          <p className="max-w-xl text-sm sm:text-base md:text-lg text-white/60 leading-relaxed mb-10">
-            Premium niche fragrances inspired by royalty,
-            rebellion, ocean storms, and wild instinct.
-          </p>
-
-          {/* BUTTONS */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* SHOP BUTTON */}
-            <button
-              onClick={() => navigate('/shop')}
-              className="bg-gold hover:bg-[#d6b45c] text-black font-semibold px-8 py-4 rounded-2xl transition-all duration-300"
-            >
-              Shop Collection
-            </button>
-
-            {/* BEST SELLERS BUTTON */}
-            <button
-              onClick={() => {
-                setTimeout(() => {
-                  document.getElementById('new-arrivals')?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                  });
-                }, 100);
-              }}
-              className="border border-gold/20 hover:border-gold/50 text-white px-8 py-4 rounded-2xl backdrop-blur-sm transition-all duration-300"
-            >
-              New Arrivals
-            </button>
-          </div>
-
-          {/* SCROLL */}
-          <div className="mt-16 flex flex-col items-center gap-3 opacity-60">
-            <div className="h-12 w-[1px] bg-gold/40" />
-            <span className="text-[10px] tracking-[0.4em] uppercase text-gold">
-              Scroll
-            </span>
-          </div>
-        </div>
-      </section>
+    {/* SCROLL */}
+    <div className="mt-12 sm:mt-16 flex flex-col items-center gap-3 opacity-60">
+      <div className="h-10 sm:h-12 w-[1px] bg-gold/40" />
+      <span className="text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] uppercase text-gold">
+        Scroll
+      </span>
+    </div>
+  </div>
+</section>
 
       {/* Marquee */}
       <MarqueeBanner />

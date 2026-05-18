@@ -1,4 +1,97 @@
-@tailwind base;
+/* Add these at the bottom of your index.css file, after all existing code */
+
+/* ===== MOBILE CENTERING FIXES ===== */
+
+/* Ensure proper box sizing and no horizontal scroll */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Center all main containers properly */
+.max-w-7xl,
+.max-w-5xl,
+.max-w-2xl,
+.max-w-xl,
+.max-w-md {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100%;
+}
+
+/* Ensure proper padding on mobile for all sections */
+section,
+div[class*="px-"],
+div[class*="container"] {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Specific fix for hero section text alignment */
+.text-center {
+  text-align: center !important;
+}
+
+/* Fix for headings on mobile */
+h1, h2, h3 {
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Responsive text adjustments for very small screens */
+@media (max-width: 480px) {
+  /* Adjust font sizes for mobile */
+  h1 {
+    font-size: clamp(2.5rem, 8vw, 3.5rem) !important;
+  }
+  
+  h2 {
+    font-size: clamp(1.8rem, 6vw, 2.5rem) !important;
+  }
+  
+  /* Ensure buttons are properly spaced and centered */
+  .flex.flex-col.xs\:flex-row {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  /* Fix for product cards on mobile */
+  .grid {
+    gap: 0.75rem !important;
+  }
+  
+  /* Ensure glass effects don't overflow */
+  .glass, .glass-light {
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Fix for images on mobile */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure flex containers center children properly */
+.flex.items-center.justify-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}@tailwind base;
 @tailwind components;
 @tailwind utilities;
 @layer base {
@@ -94,3 +187,49 @@
   50% { box-shadow: 0 0 20px 4px rgba(201,168,76,0.25); }
 }
 .animate-pulse-gold { animation: pulse-gold 2.5s ease-in-out infinite; }
+/* Add at the bottom of index.css */
+
+/* Extra small screens (phones) */
+@media (max-width: 480px) {
+  .xs\:text-6xl {
+    font-size: 3.5rem;
+  }
+  .xs\:text-5xl {
+    font-size: 3rem;
+  }
+  .xs\:text-sm {
+    font-size: 0.875rem;
+  }
+  .xs\:text-base {
+    font-size: 1rem;
+  }
+  .xs\:tracking-\[0\.25em\] {
+    letter-spacing: 0.25em;
+  }
+  .xs\:flex-row {
+    flex-direction: row;
+  }
+  .xs\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  .xs\:w-40 {
+    width: 10rem;
+  }
+}
+
+/* Center fix for all containers */
+.container-center {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-center {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
