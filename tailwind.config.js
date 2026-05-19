@@ -4,6 +4,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        'xs': '480px',  // Add extra small breakpoint
+      },
       colors: {
         gold: {
           DEFAULT: '#C9A84C',
