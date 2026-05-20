@@ -34,13 +34,14 @@ export default function About() {
       {/* Hero */}
       <section className="relative overflow-hidden min-h-[70vh] flex items-center">
         <div className="absolute inset-0">
-          <img
-            src="/images/AboutBan.jpeg"
-            alt="About hero"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
-        </div>
+  <img
+    src="/images/AboutBan.png"
+    alt="About hero"
+    className="w-full h-full object-cover brightness-125 contrast-110 saturate-110"
+  />
+
+  <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-black/40" />
+</div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -70,28 +71,20 @@ export default function About() {
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
             >
-              <p className="text-xs tracking-[0.4em] text-gold uppercase mb-5">Our Story</p>
+              <p className="text-xs tracking-[0.4em] text-gold uppercase mb-5">OUR JOURNEY</p>
               <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)] mb-6 leading-tight">
-                From a dorm room experiment to a fragrance brand people actually trust.
+                From experiments to experiences.
               </h2>
               <p className="text-[var(--text-muted)] leading-relaxed mb-4">
-                Wildcore Fragrances started the way most real things do — not with a business plan, but with curiosity and a lot of late nights.
+                Wildcore Fragrances started with a simple idea — to create scents that feel personal, bold, and memorable.
+
+What began as small experiments with solid perfumes slowly grew into a fragrance brand built around identity, creativity, and trust.
+
+Today, Wildcore creates luxury-inspired perfumes, fragrance cards, and custom branded scent experiences for individuals, clothing stores, car detailing studios, and modern lifestyle businesses.
+
+Every product is made with attention to scent, presentation, and the feeling it leaves behind — because fragrance is not just something you wear, it is something people remember you by.
               </p>
-              <p className="text-[var(--text-muted)] leading-relaxed mb-4">
-                A year ago, me and my friend started experimenting with solid perfumes in our room. No lab, no funding, just raw ingredients, failed batches, and the kind of obsession that keeps you up at 2am. We were frustrated with mainstream fragrances — overpriced, synthetic, and made for everyone, which meant they felt like no one.
-              </p>
-              <p className="text-[var(--text-muted)] leading-relaxed">
-                So we made our own. 
-              </p>
-              <p className="text-[var(--text-muted)] leading-relaxed">
-                What began as solid perfumes — handcrafted, skin-safe, and built to last — quickly grew into something bigger. Our friends tried them. Then their friends asked where to buy them. Within months, we expanded into liquid perfumes, each one still mixed with the same hands-on care we started with.
-              </p>
-             <p className="text-[var(--text-muted)] leading-relaxed">
-                We're not a corporation. We're two people who genuinely believe a fragrance should feel like you — your mood, your identity, your energy. Every bottle we ship, we stand behind personally. 
-              </p>
-              <p className="text-[var(--text-muted)] leading-relaxed">
-                Wildcore isn't just a brand. It's proof that two people with a real idea can build something worth smelling. 
-              </p>
+              
             </motion.div>
 
             <ParallaxImage

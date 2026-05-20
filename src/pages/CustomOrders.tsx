@@ -2,6 +2,9 @@
 import { addB2BInquiry } from '../services/b2bService';
 import { motion } from 'framer-motion';
 import { Shirt, Car } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+
 
 export default function CustomOrders() {
   return (
@@ -32,38 +35,46 @@ export default function CustomOrders() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Clothing */}
-          <motion.div
-            className="glass glass-hover rounded-3xl p-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="w-14 h-14 rounded-2xl bg-gold/15 flex items-center justify-center mb-6">
-              <Shirt className="text-gold" size={28} />
-            </div>
+          <Link to="/b2b/clothing-shops">
+  <motion.div
+  className="glass glass-hover rounded-3xl p-8 cursor-pointer group border border-gold/30 hover:border-gold hover:shadow-[0_0_35px_rgba(201,168,76,0.18)] transition-all duration-300"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+>
+    <div className="w-14 h-14 rounded-2xl bg-gold/15 flex items-center justify-center mb-6">
+      <Shirt className="text-gold" size={28} />
+    </div>
 
-            <h2 className="font-serif text-3xl font-bold text-[var(--text)] mb-4">
-              Clothing Shops
-            </h2>
+    <h2 className="font-serif text-3xl font-bold text-[var(--text)] mb-4">
+      Clothing Shops
+    </h2>
 
-            <p className="text-[var(--text-muted)] leading-relaxed mb-5">
-              Custom fragrance cards and branded perfumes for fashion stores.
-            </p>
+    <p className="text-[var(--text-muted)] leading-relaxed mb-5">
+      Custom fragrance cards and branded perfumes for fashion stores.
+    </p>
 
-            <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-              <li>• Shop branding on cards</li>
-              <li>• Customer giveaway perfumes</li>
-              <li>• Bulk manufacturing</li>
-              <li>• Luxury fragrance experience</li>
-            </ul>
-          </motion.div>
-
+    <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+      <li>• Shop branding on cards</li>
+      <li>• Customer giveaway perfumes</li>
+      <li>• Bulk manufacturing</li>
+      <li>• Luxury fragrance experience</li>
+    </ul>
+    <div className="mt-8 inline-flex items-center gap-2 text-gold font-semibold">
+  View Clothing Work
+  <ArrowRight
+    size={16}
+    className="group-hover:translate-x-1 transition-transform"
+  />
+</div>
+  </motion.div>
+</Link>
           {/* Car */}
+          <Link to="/b2b/car-detailing">
           <motion.div
-            className="glass glass-hover rounded-3xl p-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+  className="glass glass-hover rounded-3xl p-8 cursor-pointer group border border-gold/30 hover:border-gold hover:shadow-[0_0_35px_rgba(201,168,76,0.18)] transition-all duration-300"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+>
             <div className="w-14 h-14 rounded-2xl bg-gold/15 flex items-center justify-center mb-6">
               <Car className="text-gold" size={28} />
             </div>
@@ -82,8 +93,15 @@ export default function CustomOrders() {
               <li>• Bulk supply</li>
               <li>• Long-lasting fragrance</li>
             </ul>
+            <div className="mt-8 inline-flex items-center gap-2 text-gold font-semibold">
+  View Car Branding Work
+  <ArrowRight
+    size={16}
+    className="group-hover:translate-x-1 transition-transform"
+  />
+</div>
           </motion.div>
-
+</Link>
         </div>
 <div className="mt-16 glass rounded-3xl p-8">
   <h2 className="font-serif text-3xl font-bold text-[var(--text)] mb-4">

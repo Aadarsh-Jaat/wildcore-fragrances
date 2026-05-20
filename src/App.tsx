@@ -1,3 +1,4 @@
+import CarDetailing from "./pages/CarDetailing";
 import CustomOrders from './pages/CustomOrders';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -22,6 +23,9 @@ import Admin from './pages/Admin';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import ShippingPolicy from './pages/ShippingPolicy';
+import ClothingShops from "./pages/ClothingShops";
+
+
 
 
 const pageVariants = {
@@ -65,6 +69,8 @@ function AnimatedRoutes() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/custom-orders" element={<CustomOrders />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/b2b/clothing-shops" element={<ClothingShops />} />
+<Route path="/b2b/car-detailing" element={<CarDetailing />} />
 <Route path="/terms" element={<Terms />} />
 <Route path="/shipping-policy" element={<ShippingPolicy />} />
           <Route
