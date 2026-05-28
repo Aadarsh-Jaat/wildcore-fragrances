@@ -9,6 +9,8 @@ import { getProducts } from '../services/productService';
 import type { Product } from '../services/productService';
 import { testimonials } from '../data/testimonials';
 import ProductCard from '../components/ProductCard';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 
 
 // Particle background canvas
@@ -324,10 +326,25 @@ function NewsletterSection() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) setSubscribed(true);
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!email.trim()) return;
+
+  try {
+    await addDoc(collection(db, "newsletterSubscribers"), {
+      email: email.trim().toLowerCase(),
+      source: "home_newsletter",
+      createdAt: serverTimestamp(),
+    });
+
+    setSubscribed(true);
+    setEmail("");
+  } catch (error) {
+    console.error("Newsletter subscribe error:", error);
+    alert("Something went wrong. Please try again.");
+  }
+};
 
   return (
     <section className="py-20 px-4 sm:px-6">
@@ -622,31 +639,45 @@ export default function Home() {
                 </a>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="glass rounded-2xl p-6">
-                  <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
-                    Clothing Stores
-                  </h3>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <Link
+    to="/b2b/clothing-shops"
+    className="block rounded-2xl border border-gold/30 bg-black/20 p-6 hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_25px_rgba(201,168,76,0.18)] transition-all duration-300 cursor-pointer group"
+  >
+    <h3 className="font-serif text-2xl text-[var(--text)] mb-4">
+      Clothing Stores
+    </h3>
 
-                  <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <li>• Branded fragrance cards</li>
-                    <li>• Customer giveaway perfumes</li>
-                    <li>• Luxury shop branding</li>
-                  </ul>
-                </div>
+    <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+      <li>• Branded fragrance cards</li>
+      <li>• Customer giveaway perfumes</li>
+      <li>• Luxury shop branding</li>
+    </ul>
 
-                <div className="glass rounded-2xl p-6">
-                  <h3 className="font-serif text-2xl text-[var(--text)] mb-3">
-                    Car Showrooms
-                  </h3>
+    <p className="mt-5 text-gold font-semibold text-sm">
+      View Work <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+    </p>
+  </Link>
 
-                  <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-                    <li>• Car hanging perfumes</li>
-                    <li>• Showroom branding</li>
-                    <li>• Bulk fragrance supply</li>
-                  </ul>
-                </div>
-              </div>
+  <Link
+    to="/b2b/car-detailing"
+    className="block rounded-2xl border border-gold/30 bg-black/20 p-6 hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_25px_rgba(201,168,76,0.18)] transition-all duration-300 cursor-pointer group"
+  >
+    <h3 className="font-serif text-2xl text-[var(--text)] mb-4">
+      Car Showrooms
+    </h3>
+
+    <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+      <li>• Car hanging perfumes</li>
+      <li>• Showroom branding</li>
+      <li>• Bulk fragrance supply</li>
+    </ul>
+
+    <p className="mt-5 text-gold font-semibold text-sm">
+      View Work <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+    </p>
+  </Link>
+</div>
             </div>
           </div>
         </div>
@@ -664,20 +695,33 @@ export default function Home() {
             >
               <p className="text-xs tracking-[0.4em] text-gold uppercase mb-4">Our Story</p>
               <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)] mb-6 leading-tight">
-                Born from the
-                <span className="gold-gradient block">wilderness.</span>
-              </h2>
-              <p className="text-[var(--text-muted)] leading-relaxed mb-4">
-                Wildcore Fragrances was forged in defiance of the ordinary. We source the world's rarest raw materials — from Laotian oud forests to Moroccan rose fields — and transform them into scents that are as bold as those who wear them.
-              </p>
-              <p className="text-[var(--text-muted)] leading-relaxed mb-8">
-                Every bottle is a manifesto. Every scent is a statement. This is perfumery for the untamed.
-              </p>
+  Built From
+  <span className="gold-gradient block">Real Work.</span>
+</h2>
+
+<p className="text-[var(--text-muted)] leading-relaxed mb-4">
+  We started with nothing but raw ingredients and curiosity.
+</p>
+
+<div className="space-y-2 mb-6">
+  <p className="text-[var(--text-muted)] leading-relaxed flex items-start gap-2">
+    <span className="text-amber-500 mt-1">✦</span>
+    Handmade perfume experiments in a small studio
+  </p>
+  <p className="text-[var(--text-muted)] leading-relaxed flex items-start gap-2">
+    <span className="text-amber-500 mt-1">✦</span>
+    Custom fragrance cards for local stores and studios
+  </p>
+  <p className="text-[var(--text-muted)] leading-relaxed flex items-start gap-2">
+    <span className="text-amber-500 mt-1">✦</span>
+    Trust earned bottle by bottle — no shortcuts
+  </p>
+</div>
               <Link
                 to="/about"
                 className="inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium transition-colors group"
               >
-                Read Our Full Story <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                Read the full Story <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
 
@@ -697,8 +741,8 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
               <div className="absolute -bottom-6 -left-6 glass rounded-2xl p-5 max-w-[180px]">
-                <p className="text-3xl font-serif font-bold text-gold">1+</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1 leading-tight">Years crafting extraordinary fragrances</p>
+                <p className="text-3xl font-serif font-bold text-gold">8000+</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-tight">custom fragrance cards shipped</p>
               </div>
               <div className="absolute -top-4 -right-4 glass rounded-2xl p-4">
                 <div className="flex gap-0.5 mb-1">
