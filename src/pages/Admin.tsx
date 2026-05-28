@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  query,
+} from 'firebase/firestore';
+
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +20,7 @@ import {
   Edit,
   X,
   Briefcase,
+  Mail,
 } from 'lucide-react';
 import {
   getProducts,
@@ -27,7 +35,7 @@ import {
 } from '../services/b2bService';
 import type { Product } from '../services/productService';
 
-type Tab = 'orders' | 'users' | 'products' | 'b2b';
+type Tab = 'orders' | 'users' | 'products' | 'b2b' | 'subscribers';
 type ProductForm = Omit<Product, 'id'>;
 
 interface FirestoreUser {
@@ -58,7 +66,12 @@ interface Order {
   paymentStatus: 'paid' | 'unpaid';
   note?: string;
 }
-
+interface Subscriber {
+  id: string;
+  email: string;
+  source: string;
+  createdAt?: any;
+}
 const emptyProductForm: ProductForm = {
   name: '',
   tagline: '',
@@ -94,6 +107,7 @@ export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [b2bInquiries, setB2BInquiries] = useState<B2BInquiry[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -147,6 +161,17 @@ setProducts(productsData);
 
 const inquiriesData = await getB2BInquiries();
 setB2BInquiries(inquiriesData);
+
+const subscribersSnap = await getDocs(
+  query(collection(db, 'newsletterSubscribers'))
+);
+
+const subscribersData = subscribersSnap.docs.map(doc => ({
+  id: doc.id,
+  ...doc.data(),
+})) as Subscriber[];
+
+setSubscribers(subscribersData);
 
 setLoading(false);
   };
@@ -428,6 +453,7 @@ setLoading(false);
   { key: 'users', label: 'Users', icon: Users },
   { key: 'products', label: 'Products', icon: Boxes },
   { key: 'b2b', label: 'B2B', icon: Briefcase },
+  { key: 'subscribers', label: 'Subscribers', icon: Mail },
 ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -528,7 +554,7 @@ setLoading(false);
                 )}
               </div>
             )}
-
+            
             {tab === 'users' && (
               <div className="space-y-4">
                 {users.map(u => (
@@ -758,6 +784,39 @@ setLoading(false);
                 WhatsApp
               </a>
             </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+{tab === 'subscribers' && (
+  <div className="space-y-4">
+    {subscribers.length === 0 ? (
+      <div className="text-center py-20">
+        <Mail
+          size={48}
+          className="text-[var(--text-muted)] mx-auto mb-4 opacity-30"
+        />
+
+        <p className="text-[var(--text-muted)] italic">
+          No newsletter subscribers yet.
+        </p>
+      </div>
+    ) : (
+      subscribers.map(sub => (
+        <div
+          key={sub.id}
+          className="glass rounded-2xl p-5 flex items-center justify-between"
+        >
+          <div>
+            <p className="text-[var(--text)] font-medium">
+              {sub.email}
+            </p>
+
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              Source: {sub.source || 'newsletter'}
+            </p>
           </div>
         </div>
       ))
