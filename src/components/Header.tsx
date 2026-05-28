@@ -49,7 +49,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <img
-              src="/images/Logo.jpeg"
+              src="/images/Logo.png"
               alt="Wildcore Fragrances"
               className="w-16 h-16 object-contain"
             />

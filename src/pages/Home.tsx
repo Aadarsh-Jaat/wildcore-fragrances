@@ -153,6 +153,7 @@ function TestimonialsSection() {
               <img
                 src={testimonials[active].photo}
                 alt={testimonials[active].name}
+                loading="lazy"
                 className="w-12 h-12 rounded-full object-cover border-2 border-gold/30"
               />
               <div className="text-left">
@@ -185,7 +186,7 @@ function TestimonialsSection() {
                   i === active ? 'ring-2 ring-gold scale-105' : 'opacity-50 hover:opacity-80'
                 }`}
               >
-                <img src={t.photo} alt={t.name} className="w-12 h-12 object-cover" />
+                <img src={t.photo} alt={t.name} loading="lazy" className="w-12 h-12 object-cover" />
               </button>
             ))}
           </div>
@@ -286,6 +287,7 @@ function ReelsSection() {
                 <img
                   src={reel.thumbnail}
                   alt={reel.title}
+                  loading="eager"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
 
@@ -734,7 +736,7 @@ export default function Home() {
             >
               <div className="relative rounded-3xl overflow-hidden aspect-[4/5]">
                 <img
-                  src="/images/bstory.jpeg"
+                  src="/images/bstory.png"
                   alt="Brand story"
                   className="w-full h-full object-cover"
                 />

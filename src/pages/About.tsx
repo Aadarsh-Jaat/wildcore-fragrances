@@ -37,6 +37,7 @@ export default function About() {
   <img
     src="/images/AboutBan.png"
     alt="About hero"
+    loading="eager"
     className="w-full h-full object-cover brightness-125 contrast-110 saturate-110"
   />
 

@@ -22,7 +22,7 @@ export default function LoadingScreen() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.img
-              src="/images/Logo.jpeg"
+              src="/images/Logo.png"
               alt="Wildcore Logo"
               className="w-20 h-20 object-contain"
               initial={{ opacity: 0, scale: 0.8 }}

@@ -182,6 +182,8 @@ Please confirm my order.`;
               <img
                 src={productImages[activeImage]}
                 alt={product.name}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-200"
                 style={
                   isZoomed
@@ -216,7 +218,7 @@ Please confirm my order.`;
                       i === activeImage ? 'ring-2 ring-gold' : 'opacity-50 hover:opacity-80'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
