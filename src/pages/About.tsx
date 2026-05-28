@@ -22,10 +22,10 @@ function ParallaxImage({ src, alt, className = '' }: { src: string; alt: string;
 }
 
 const values = [
-  { number: '01', title: 'Rare Ingredients', desc: 'We source only the finest raw materials from their native origins — Laotian oud, Moroccan rose, Madagascan vanilla.' },
-  { number: '02', title: 'Master Craftsmanship', desc: 'Each fragrance is composed by master perfumers with decades of experience in the art of fine perfumery.' },
-  { number: '03', title: 'Sustainable Ethics', desc: 'Wild doesn\'t mean reckless. We partner with fair-trade suppliers and invest in regenerative harvesting practices.' },
-  { number: '04', title: 'No Compromise', desc: 'We never dilute, never cut corners, and never sacrifice quality for cost. Every bottle is 100% our standard or nothing.' },
+  { number: '01', title: 'Curated Selection', desc: 'We hand-pick each fragrance from trusted, proven houses — never blind buys or hype-driven choices.' },
+  { number: '02', title: 'Honest Quality', desc: 'No fake backstories. No inflated "master perfumer" myths. Just genuinely well-made fragrances that perform.' },
+  { number: '03', title: 'Sustainable Ethics', desc: 'We prioritize responsible packaging, minimize waste, and work with suppliers who share our values.' },
+  { number: '04', title: 'No Compromise', desc: 'We never sell what we would not wear ourselves. Every bottle earns its place in our collection.' },
 ];
 
 export default function About() {
@@ -134,7 +134,7 @@ Every product is made with attention to scent, presentation, and the feeling it 
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <ParallaxImage
-              src="/images/rebelian.jpg"
+              src="/images/founder.png"
               alt="Founder"
               className="aspect-[3/4]"
             />
