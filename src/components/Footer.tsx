@@ -1,17 +1,58 @@
 import { Link } from 'react-router-dom';
 import { Instagram, MessageCircle, Mail, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState } from "react";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { useToast } from '../context/ToastContext';
+
 
 const WHATSAPP = '917056713252';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const { addToast } = useToast();
+const handleSubscribe = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) { setSubscribed(true); setEmail(''); }
-  };
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return;
+
+  try {
+    const q = query(
+      collection(db, "newsletterSubscribers"),
+      where("email", "==", cleanEmail)
+    );
+
+    const existing = await getDocs(q);
+
+    if (!existing.empty) {
+      addToast("You are already subscribed ✨");
+      setEmail("");
+      return;
+    }
+
+    await addDoc(collection(db, "newsletterSubscribers"), {
+      email: cleanEmail,
+      source: "footer_newsletter",
+      createdAt: serverTimestamp(),
+    });
+
+    setSubscribed(true);
+    setEmail("");
+    addToast("Subscribed successfully ✨");
+  } catch (error) {
+    console.error("Footer newsletter error:", error);
+    addToast("Something went wrong. Please try again.");
+  }
+};
 
   return (
     <footer className="bg-[var(--bg2)] border-t border-[var(--border)] mt-24">

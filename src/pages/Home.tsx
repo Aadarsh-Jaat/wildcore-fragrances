@@ -9,8 +9,16 @@ import { getProducts } from '../services/productService';
 import type { Product } from '../services/productService';
 import { testimonials } from '../data/testimonials';
 import ProductCard from '../components/ProductCard';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../firebase";
+import { useToast } from '../context/ToastContext';
 
 
 // Particle background canvas
@@ -154,6 +162,7 @@ function TestimonialsSection() {
                 src={testimonials[active].photo}
                 alt={testimonials[active].name}
                 loading="lazy"
+                decoding="async"
                 className="w-12 h-12 rounded-full object-cover border-2 border-gold/30"
               />
               <div className="text-left">
@@ -186,7 +195,7 @@ function TestimonialsSection() {
                   i === active ? 'ring-2 ring-gold scale-105' : 'opacity-50 hover:opacity-80'
                 }`}
               >
-                <img src={t.photo} alt={t.name} loading="lazy" className="w-12 h-12 object-cover" />
+                <img src={t.photo} alt={t.name} loading="lazy" decoding="async" className="w-12 h-12 object-cover" />
               </button>
             ))}
           </div>
@@ -327,6 +336,7 @@ function ReelsSection() {
 function NewsletterSection() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const { addToast } = useToast();
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -334,18 +344,34 @@ const handleSubmit = async (e: React.FormEvent) => {
   if (!email.trim()) return;
 
   try {
-    await addDoc(collection(db, "newsletterSubscribers"), {
-      email: email.trim().toLowerCase(),
-      source: "home_newsletter",
-      createdAt: serverTimestamp(),
-    });
+  const cleanEmail = email.trim().toLowerCase();
 
-    setSubscribed(true);
+  const q = query(
+    collection(db, "newsletterSubscribers"),
+    where("email", "==", cleanEmail)
+  );
+
+  const existing = await getDocs(q);
+
+  if (!existing.empty) {
+    addToast("You are already subscribed ✨");
     setEmail("");
-  } catch (error) {
-    console.error("Newsletter subscribe error:", error);
-    alert("Something went wrong. Please try again.");
+    return;
   }
+
+  await addDoc(collection(db, "newsletterSubscribers"), {
+    email: cleanEmail,
+    source: "home_newsletter", // footer me "footer_newsletter"
+    createdAt: serverTimestamp(),
+  });
+
+  setSubscribed(true);
+  setEmail("");
+  addToast("Subscribed successfully ✨");
+} catch (error) {
+  console.error("Newsletter subscribe error:", error);
+  addToast("Something went wrong. Please try again.");
+}
 };
 
   return (
@@ -590,6 +616,8 @@ export default function Home() {
                   <img
                     src={col.image}
                     alt={col.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -738,6 +766,7 @@ export default function Home() {
                 <img
                   src="/images/bstory.png"
                   alt="Brand story"
+                  loading="eager"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

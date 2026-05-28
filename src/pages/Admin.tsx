@@ -4,8 +4,9 @@ import {
   getDocs,
   doc,
   updateDoc,
+  deleteDoc,
   query,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -364,6 +365,14 @@ setLoading(false);
     await deleteProduct(productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
   };
+  const deleteSubscriber = async (id: string) => {
+  const ok = confirm("Delete this subscriber?");
+  if (!ok) return;
+
+  await deleteDoc(doc(db, "newsletterSubscribers", id));
+
+  setSubscribers(prev => prev.filter(sub => sub.id !== id));
+};
 
   const statusColors = {
     delivered: 'text-green-400 bg-green-400/10',
@@ -637,6 +646,8 @@ setLoading(false);
                         <img
                           src={product.image}
                           alt={product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-24 h-24 rounded-xl object-cover bg-[var(--bg3)]"
                         />
 
@@ -792,13 +803,14 @@ setLoading(false);
 )}
 {tab === 'subscribers' && (
   <div className="space-y-4">
+    <p className="text-sm text-[var(--text-muted)]">
+      Total Subscribers:{" "}
+      <span className="text-gold font-semibold">{subscribers.length}</span>
+    </p>
+
     {subscribers.length === 0 ? (
       <div className="text-center py-20">
-        <Mail
-          size={48}
-          className="text-[var(--text-muted)] mx-auto mb-4 opacity-30"
-        />
-
+        <Mail size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
         <p className="text-[var(--text-muted)] italic">
           No newsletter subscribers yet.
         </p>
@@ -807,17 +819,29 @@ setLoading(false);
       subscribers.map(sub => (
         <div
           key={sub.id}
-          className="glass rounded-2xl p-5 flex items-center justify-between"
+          className="glass rounded-2xl p-5 flex items-center justify-between gap-4"
         >
           <div>
-            <p className="text-[var(--text)] font-medium">
-              {sub.email}
+            <p className="text-[var(--text)] font-medium">{sub.email}</p>
+
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              Source: {sub.source || "newsletter"}
             </p>
 
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              Source: {sub.source || 'newsletter'}
+              Date:{" "}
+              {sub.createdAt?.toDate
+                ? sub.createdAt.toDate().toLocaleString("en-IN")
+                : "Not available"}
             </p>
           </div>
+
+          <button
+            onClick={() => deleteSubscriber(sub.id)}
+            className="text-red-400 hover:text-red-300 text-sm"
+          >
+            Delete
+          </button>
         </div>
       ))
     )}
