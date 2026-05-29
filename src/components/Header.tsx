@@ -51,6 +51,7 @@ export default function Header() {
             <img
               src="/images/Logo.png"
               alt="Wildcore Fragrances"
+              loading="eager"
               className="w-16 h-16 object-contain"
             />
             <div className="flex flex-col leading-none">

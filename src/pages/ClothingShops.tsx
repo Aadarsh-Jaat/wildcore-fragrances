@@ -66,6 +66,8 @@ export default function ClothingShops() {
                 <img
                   src={project.image}
                   alt={project.brand}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-80 object-cover"
                 />
 

@@ -15,7 +15,7 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test1.jpeg',
     rating: 5,
     text: 'Berry Blush is UNREAL. Every time I wear it, someone asks what I\'m wearing. The longevity is incredible — still going strong 10 hours later. This is my signature scent now.',
-    product: 'Wanted X',
+    product: 'Berry Blush',
   },
   {
     id: '2',
@@ -24,7 +24,7 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test2.jpeg',
     rating: 5,
     text: 'Aqua Storm surpassed every expectation. I\'ve tried countless oud fragrances but this one has a unique warmth that feels luxurious yet modern. The bottle itself is a piece of art.',
-    product: 'Oud Mirag',
+    product: 'Aqua Storm',
   },
   {
     id: '3',
@@ -33,7 +33,7 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test3.jpeg',
     rating: 5,
     text: 'Wanted X is exactly what the name promises. Dark, mysterious, and completely addictive. I ordered 3 bottles because I was scared it would sell out.',
-    product: 'Rebelian',
+    product: 'Wanted X',
   },
   {
     id: '4',
@@ -42,7 +42,7 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test4.jpeg',
     rating: 5,
     text: 'Iron Drift doesn\'t smell like every other rose fragrance. There\'s something different about it — darker, more complex. It\'s romantic but not sweet. Absolutely love it.',
-    product: 'Berry Blush',
+    product: 'Iron Drift',
   },
   {
     id: '5',
@@ -51,7 +51,7 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test5.jpeg',
     rating: 5,
     text: 'Berry Blush is my summer staple. Clean and fresh without being generic. It smells expensive. The WhatsApp ordering was fast and the packaging is insane — premium all the way.',
-    product: 'Aqua Storm',
+    product: 'Berry Blush',
   },
   {
     id: '6',
@@ -60,6 +60,6 @@ export const testimonials: Testimonial[] = [
     photo: '/images/Test6.jpeg',
     rating: 5,
     text: 'Wanted X is my forever scent. It smells like incense, warmth, and something sacred. Every compliment I\'ve gotten in the last year has been about this fragrance.',
-    product: 'Flower Punch',
+    product: 'Wanted X',
   },
 ];
