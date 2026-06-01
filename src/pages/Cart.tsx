@@ -1,3 +1,6 @@
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,29 +10,58 @@ const WHATSAPP = '917056713252';
 
 export default function Cart() {
   const { items, removeItem, updateQty, total, clearCart } = useCart();
+  const { user } = useAuth();
   const [customerName, setCustomerName] = useState('');
 const [customerPhone, setCustomerPhone] = useState('');
 const [customerAddress, setCustomerAddress] = useState('');
 
-  const handleWhatsAppCheckout = () => {
+  const handleWhatsAppCheckout = async () => {
   if (items.length === 0) return;
 
-  if (!customerName || !customerPhone || !customerAddress) {
-    alert('Please fill your details');
+  if (!user) {
+    alert("Please sign in before placing your order.");
     return;
   }
 
-  const lines = items.map(
-    i =>
-      `• ${i.name} (${i.volume}ml) × ${i.quantity} = ₹${(
-        i.price * i.quantity
-      ).toFixed(2)}`
-  );
+  if (!customerName || !customerPhone || !customerAddress) {
+    alert("Please fill your details");
+    return;
+  }
 
-  const msg =
-`Hi Wildcore Fragrances!
+  const orderItems = items.map(i => ({
+    name: i.name,
+    volume: i.volume,
+    qty: i.quantity,
+    price: i.price,
+  }));
 
-I would like to place an order.
+  const newOrder = {
+    id: `WC-${Date.now()}`,
+    date: new Date().toISOString(),
+    items: orderItems,
+    total,
+    status: "processing",
+    paymentStatus: "unpaid",
+    note: `Website order | Name: ${customerName} | Phone: ${customerPhone} | Address: ${customerAddress}`,
+  };
+
+  try {
+    await updateDoc(doc(db, "users", user.id), {
+      orders: arrayUnion(newOrder),
+    });
+
+    const lines = items.map(
+      i =>
+        `• ${i.name} (${i.volume}ml) × ${i.quantity} = ₹${(
+          i.price * i.quantity
+        ).toFixed(2)}`
+    );
+
+    const msg = `Hi Wildcore Fragrances!
+
+I placed an order from your website.
+
+ORDER ID: ${newOrder.id}
 
 CUSTOMER DETAILS
 Name: ${customerName}
@@ -37,16 +69,22 @@ Phone: ${customerPhone}
 Address: ${customerAddress}
 
 ORDER DETAILS
-${lines.join('\n')}
+${lines.join("\n")}
 
 Total: ₹${total.toFixed(2)}
 
 Please confirm my order.`;
 
-  window.open(
-    `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
-    '_blank'
-  );
+    window.open(
+      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
+      "_blank"
+    );
+
+    clearCart();
+  } catch (error) {
+    console.error("Order save error:", error);
+    alert("Something went wrong while placing order.");
+  }
 };
 
   return (
@@ -104,7 +142,7 @@ Please confirm my order.`;
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <Link to={`/product/₹{item.id}`} className="hover:text-gold transition-colors">
+                      <Link to={`/product/${item.id}`} className="hover:text-gold transition-colors">
                         <h3 className="font-serif font-semibold text-[var(--text)] text-base leading-tight">{item.name}</h3>
                       </Link>
                       <p className="text-xs text-[var(--text-muted)] mt-0.5">{item.volume}ml</p>

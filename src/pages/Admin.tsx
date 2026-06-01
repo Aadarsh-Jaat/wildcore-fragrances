@@ -257,6 +257,38 @@ setLoading(false);
       await updateDoc(doc(db, 'users', userId), { orders: targetUser.orders });
     }
   };
+  const updatePaymentStatus = async (
+  userId: string,
+  orderId: string,
+  newPaymentStatus: Order["paymentStatus"]
+) => {
+  const updatedUsers = users.map(u => {
+    if (u.id === userId) {
+      return {
+        ...u,
+        orders: u.orders.map(o =>
+          o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+        ),
+      };
+    }
+    return u;
+  });
+
+  setUsers(updatedUsers);
+
+  setOrders(prev =>
+    prev.map(o =>
+      o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+    )
+  );
+
+  const userRef = doc(db, "users", userId);
+  const targetUser = updatedUsers.find(u => u.id === userId);
+
+  if (targetUser) {
+    await updateDoc(userRef, { orders: targetUser.orders });
+  }
+};
 
   const updateProductStock = async (productId: string, stock: number) => {
     await updateProduct(productId, { stock });
@@ -380,8 +412,14 @@ setLoading(false);
     processing: 'text-yellow-400 bg-yellow-400/10',
   };
 
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-  const pendingOrders = orders.filter(o => o.status === 'processing').length;
+  const totalRevenue = orders
+  .filter(order => order.paymentStatus === 'paid')
+  .reduce((sum, order) => sum + (order.total || 0), 0);
+
+const pendingAmount = orders
+  .filter(order => order.paymentStatus === 'unpaid')
+  .reduce((sum, order) => sum + (order.total || 0), 0);
+
   const lowStockProducts = products.filter(p => p.stock <= 5).length;
 
   if (!user) {
@@ -447,7 +485,7 @@ setLoading(false);
 
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Pending</p>
-            <p className="font-serif text-3xl font-bold text-gold">{pendingOrders}</p>
+            <p className="font-serif text-3xl font-bold text-gold">{pendingAmount}</p>
           </div>
 
           <div className="glass rounded-2xl p-5">
@@ -529,15 +567,24 @@ setLoading(false);
                             <option value="delivered">Delivered</option>
                           </select>
 
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              order.paymentStatus === 'paid'
-                                ? 'bg-green-400/10 text-green-400'
-                                : 'bg-red-400/10 text-red-400'
-                            }`}
-                          >
-                            {order.paymentStatus || 'unpaid'}
-                          </span>
+           <select
+  value={order.paymentStatus}
+  onChange={(e) =>
+    updatePaymentStatus(
+      order.userId,
+      order.id,
+      e.target.value as Order["paymentStatus"]
+    )
+  }
+  className={`text-xs px-3 py-1 rounded-full border outline-none ${
+    order.paymentStatus === "paid"
+      ? "text-green-400 bg-green-400/10 border-green-400/20"
+      : "text-red-400 bg-red-400/10 border-red-400/20"
+  }`}
+>
+  <option value="unpaid">unpaid</option>
+  <option value="paid">paid</option>
+</select>
                         </div>
                       </div>
 
