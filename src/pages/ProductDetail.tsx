@@ -7,6 +7,9 @@ import {
   Star,
   ArrowLeft,
   Plus,
+  User,
+  Phone,
+  MapPin,
   Minus,
   ChevronDown,
   ChevronUp,
@@ -36,29 +39,29 @@ export default function ProductDetail() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  // Add this useEffect to scroll to top when product page loads
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [id]); // Runs when product ID changes
-  
+  }, [id]);
+
   useEffect(() => {
     async function loadProduct() {
       if (!id) return;
 
       try {
         setLoading(true);
-
         const data = await getProductById(id);
         setProduct(data);
 
         if (data) {
           const availableVolumes = (data.volumes || []).filter(v => v.price > 0);
 
-          setSelectedVolume(
-            data.type === 'Solid Perfume'
-              ? availableVolumes[0] || null
-              : availableVolumes[1] || availableVolumes[0] || null
-          );
+          if (data.type === 'Solid Perfume') {
+            setSelectedVolume(availableVolumes[0] || null);
+          } else {
+            const thirtyMl = availableVolumes.find(v => v.ml === 30);
+            setSelectedVolume(thirtyMl || availableVolumes[0] || null);
+          }
 
           const allProducts = await getProducts();
           const relatedProducts = allProducts
@@ -103,6 +106,11 @@ export default function ProductDetail() {
   const sizeLabel = product.type === 'Solid Perfume' ? 'Size' : 'Volume';
   const unitLabel = product.type === 'Solid Perfume' ? 'g' : 'ml';
 
+  const sortedVolumes = [...availableVolumes].sort((a, b) => {
+    const order: Record<number, number> = { 30: 0, 8: 1, 50: 2, 100: 3 };
+    return (order[a.ml] ?? 99) - (order[b.ml] ?? 99);
+  });
+
   const handleAddToCart = () => {
     if (!selectedVolume) return;
 
@@ -119,13 +127,12 @@ export default function ProductDetail() {
   };
 
   const handleWhatsApp = () => {
-  if (!customerName || !customerPhone || !customerAddress) {
-    alert('Please fill your name, phone and address before ordering.');
-    return;
-  }
+    if (!customerName || !customerPhone || !customerAddress) {
+      alert('Please fill your name, phone and address before ordering.');
+      return;
+    }
 
-  const msg =
-`Hi Wildcore Fragrances!
+    const msg = `Hi Wildcore Fragrances!
 
 I would like to place an order.
 
@@ -143,11 +150,11 @@ Total: ₹${((selectedVolume?.price || 0) * qty).toFixed(2)}
 
 Please confirm my order.`;
 
-  window.open(
-    `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
-    '_blank'
-  );
-};
+    window.open(
+      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
+      '_blank'
+    );
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -298,12 +305,12 @@ Please confirm my order.`;
                 {sizeLabel}
               </p>
 
-              <div className="flex gap-3">
-                {availableVolumes.map(v => (
+              <div className="flex gap-3 flex-wrap">
+                {sortedVolumes.map(v => (
                   <button
                     key={v.ml}
                     onClick={() => setSelectedVolume(v)}
-                    className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                    className={`flex-1 min-w-[80px] py-3 px-4 rounded-xl text-sm font-medium transition-all ${
                       selectedVolume?.ml === v.ml
                         ? 'bg-gold text-black shadow-[0_0_15px_rgba(201,168,76,0.25)]'
                         : 'glass glass-hover text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -350,47 +357,60 @@ Please confirm my order.`;
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0 || !selectedVolume}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-gold hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-all hover:shadow-[0_0_25px_rgba(201,168,76,0.35)]"
-              >
-                <ShoppingBag size={18} />
-                {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
-              </button>
-              <div className="space-y-3 mb-5">
-  <input
-    type="text"
-    placeholder="Full Name"
-    value={customerName}
-    onChange={(e) => setCustomerName(e.target.value)}
-    className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-  />
+            <div className="mt-8 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl pl-11 pr-4 py-4 text-sm text-[var(--text)]"
+                  />
+                </div>
 
-  <input
-    type="tel"
-    placeholder="Phone Number"
-    value={customerPhone}
-    onChange={(e) => setCustomerPhone(e.target.value)}
-    className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-  />
+                <div className="relative">
+                  <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
+                  <input
+                    type="tel"
+                    placeholder="Phone Number"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl pl-11 pr-4 py-4 text-sm text-[var(--text)]"
+                  />
+                </div>
+              </div>
 
-  <textarea
-    placeholder="Delivery Address"
-    value={customerAddress}
-    onChange={(e) => setCustomerAddress(e.target.value)}
-    rows={3}
-    className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)] resize-none"
-  />
-</div>
-              <button
-                onClick={handleWhatsApp}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(37,211,102,0.3)]"
-              >
-                <MessageCircle size={18} />
-                Order on WhatsApp
-              </button>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-4 top-4 text-gold" />
+                <textarea
+                  placeholder="Delivery Address"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  rows={3}
+                  className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl pl-11 pr-4 py-4 text-sm text-[var(--text)] resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0 || !selectedVolume}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-gold hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-all"
+                >
+                  <ShoppingBag size={18} />
+                  {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
+                </button>
+
+                <button
+                  onClick={handleWhatsApp}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold rounded-xl transition-all"
+                >
+                  <MessageCircle size={18} />
+                  Order on WhatsApp
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

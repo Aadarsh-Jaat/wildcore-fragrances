@@ -88,8 +88,8 @@ const emptyProductForm: ProductForm = {
     base: [],
   },
   volumes: [
-    { ml: 8, price: 0 },
     { ml: 30, price: 0 },
+    { ml: 8, price: 0 },
     { ml: 100, price: 0 },
   ],
   rating: 4.5,
@@ -317,31 +317,34 @@ setLoading(false);
   };
 
   const openEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setProductId(product.id);
-    setProductForm({
-      name: product.name,
-      tagline: product.tagline || '',
-      description: product.description || '',
-      category: product.category || 'Luxury',
-      gender: product.gender || 'Unisex',
-      type: product.type || 'Liquid Perfume',
-      image: product.image || '',
-      images: product.images || [],
-      notes: product.notes || { top: [], middle: [], base: [] },
-      volumes: product.volumes || [
-        { ml: 30, price: 0 },
-        { ml: 50, price: 0 },
-        { ml: 100, price: 0 },
-      ],
-      rating: product.rating || 4.5,
-      reviews: product.reviews || 0,
-      stock: product.stock || 0,
-      bestseller: product.bestseller || false,
-      newArrival: product.newArrival || false,
-    });
-    setShowProductModal(true);
-  };
+  // Sort volumes to prioritize 30ml first
+  const sortedVolumes = [...(product.volumes || [])].sort((a, b) => {
+    // Define priority order: 30ml first, then 8ml, then 50ml, then 100ml
+    const priority: Record<number, number> = { 30: 0, 8: 1, 50: 2, 100: 3 };
+    return (priority[a.ml] ?? 99) - (priority[b.ml] ?? 99);
+  });
+
+  setEditingProduct(product);
+  setProductId(product.id);
+  setProductForm({
+    name: product.name,
+    tagline: product.tagline || '',
+    description: product.description || '',
+    category: product.category || 'Luxury',
+    gender: product.gender || 'Unisex',
+    type: product.type || 'Liquid Perfume',
+    image: product.image || '',
+    images: product.images || [],
+    notes: product.notes || { top: [], middle: [], base: [] },
+    volumes: sortedVolumes,  // ← Use sorted volumes here
+    rating: product.rating || 4.5,
+    reviews: product.reviews || 0,
+    stock: product.stock || 0,
+    bestseller: product.bestseller || false,
+    newArrival: product.newArrival || false,
+  });
+  setShowProductModal(true);
+};
 
   const handleSaveProduct = async () => {
     if (!productId.trim()) return alert('Product ID is required');
@@ -710,10 +713,9 @@ const pendingAmount = orders
                           <p className="text-sm text-[var(--text-muted)] mt-1">
                             {product.category} • {product.gender} • {product.type}
                           </p>
-
-                          <p className="text-sm text-gold mt-2">
-                            From ₹{product.volumes?.[0]?.price || 0}
-                          </p>
+<p className="text-sm text-gold mt-2">
+  From ₹{product.volumes?.find(v => v.ml === 30)?.price || product.volumes?.[0]?.price || 0}
+</p>
 
                           <div className="flex flex-wrap gap-2 mt-3">
                             <button
