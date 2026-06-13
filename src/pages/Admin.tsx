@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  addDoc,
 } from "firebase/firestore";
 
 import { db } from '../firebase';
@@ -22,6 +23,9 @@ import {
   X,
   Briefcase,
   Mail,
+  FileText,
+  Download,
+  Eye,
 } from 'lucide-react';
 import {
   getProducts,
@@ -36,7 +40,7 @@ import {
 } from '../services/b2bService';
 import type { Product } from '../services/productService';
 
-type Tab = 'orders' | 'users' | 'products' | 'b2b' | 'subscribers';
+type Tab = 'orders' | 'users' | 'products' | 'b2b' | 'subscribers' | 'invoices';
 type ProductForm = Omit<Product, 'id'>;
 
 interface FirestoreUser {
@@ -73,6 +77,47 @@ interface Subscriber {
   source: string;
   createdAt?: any;
 }
+interface InvoiceItem {
+  productName: string;
+  qty: number;
+  price: number;
+}
+
+interface Invoice {
+  id: string;
+  invoiceNo: string;
+  buyerName: string;
+  buyerPhone: string;
+  buyerAddress: string;
+  date: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  discount: number;
+  deliveryCharge: number;
+  grandTotal: number;
+  paymentStatus: 'paid' | 'unpaid';
+  notes?: string;
+  createdAt?: any;
+}
+
+const createAutoInvoiceNo = () => {
+  const year = new Date().getFullYear();
+  const timeCode = Date.now().toString().slice(-6);
+  return `WC-INV-${year}-${timeCode}`;
+};
+
+const emptyInvoiceForm = {
+  invoiceNo: createAutoInvoiceNo(),
+  buyerName: '',
+  buyerPhone: '',
+  buyerAddress: '',
+  date: new Date().toISOString().slice(0, 10),
+  items: [{ productName: '', qty: 1, price: 0 }] as InvoiceItem[],
+  discount: 0,
+  deliveryCharge: 0,
+  paymentStatus: 'unpaid' as 'paid' | 'unpaid',
+  notes: '',
+};
 const emptyProductForm: ProductForm = {
   name: '',
   tagline: '',
@@ -109,6 +154,7 @@ export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [b2bInquiries, setB2BInquiries] = useState<B2BInquiry[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -126,6 +172,9 @@ export default function Admin() {
 
   const [saving, setSaving] = useState(false);
 
+  const [invoiceForm, setInvoiceForm] = useState(emptyInvoiceForm);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
   useEffect(() => {
     if (user && user.role !== 'admin') navigate('/');
   }, [user, navigate]);
@@ -135,8 +184,9 @@ export default function Admin() {
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
+  setLoading(true);
 
+  try {
     const usersSnap = await getDocs(collection(db, 'users'));
     const usersData = usersSnap.docs.map(d => ({
       id: d.id,
@@ -157,26 +207,38 @@ export default function Admin() {
     allOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setOrders(allOrders);
 
-const productsData = await getProducts();
-setProducts(productsData);
+    const productsData = await getProducts();
+    setProducts(productsData);
 
-const inquiriesData = await getB2BInquiries();
-setB2BInquiries(inquiriesData);
+    const inquiriesData = await getB2BInquiries();
+    setB2BInquiries(inquiriesData);
 
-const subscribersSnap = await getDocs(
-  query(collection(db, 'newsletterSubscribers'))
-);
+    const subscribersSnap = await getDocs(collection(db, 'newsletterSubscribers'));
+    const subscribersData = subscribersSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+    })) as Subscriber[];
+    setSubscribers(subscribersData);
 
-const subscribersData = subscribersSnap.docs.map(doc => ({
-  id: doc.id,
-  ...doc.data(),
-})) as Subscriber[];
+    const invoicesSnap = await getDocs(collection(db, 'invoices'));
+    const invoicesData = invoicesSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+    })) as Invoice[];
 
-setSubscribers(subscribersData);
+    invoicesData.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      return dateB - dateA;
+    });
 
-setLoading(false);
-  };
-
+    setInvoices(invoicesData);
+  } catch (error) {
+    console.error('Admin fetch error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
   const addItem = () => {
     setOrderItems([...orderItems, { name: '', volume: 50, qty: 1, price: 0 }]);
   };
@@ -409,6 +471,201 @@ setLoading(false);
   setSubscribers(prev => prev.filter(sub => sub.id !== id));
 };
 
+  const updateInvoiceItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addInvoiceItem = () => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: [...prev.items, { productName: '', qty: 1, price: 0 }],
+    }));
+  };
+
+  const removeInvoiceItem = (index: number) => {
+    setInvoiceForm(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const invoiceSubtotal = invoiceForm.items.reduce(
+    (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
+    0
+  );
+
+  const invoiceGrandTotal = Math.max(
+    invoiceSubtotal + Number(invoiceForm.deliveryCharge || 0) - Number(invoiceForm.discount || 0),
+    0
+  );
+
+  const buildInvoiceHtml = (invoice: Invoice) => {
+    const itemsRows = invoice.items
+      .map(
+        item => `
+          <tr>
+            <td>${item.productName}</td>
+            <td style="text-align:center;">${item.qty}</td>
+            <td style="text-align:right;">₹${Number(item.price).toFixed(2)}</td>
+            <td style="text-align:right;">₹${(Number(item.qty) * Number(item.price)).toFixed(2)}</td>
+          </tr>`
+      )
+      .join('');
+
+    return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${invoice.invoiceNo}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; margin: 0; padding: 30px; background: #f5f5f5; }
+    .invoice { max-width: 800px; margin: 0 auto; background: #fff; padding: 34px; border: 1px solid #ddd; }
+    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111; padding-bottom: 20px; }
+    .brand { font-size: 28px; font-weight: 800; letter-spacing: 2px; }
+    .muted { color: #666; font-size: 13px; line-height: 1.6; }
+    .gold { color: #9a7a2e; }
+    .section { margin-top: 26px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    th { background: #111; color: #fff; padding: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+    .totals { width: 320px; margin-left: auto; margin-top: 18px; }
+    .totals div { display: flex; justify-content: space-between; padding: 8px 0; }
+    .grand { font-size: 20px; font-weight: 800; border-top: 2px solid #111; margin-top: 8px; padding-top: 12px !important; }
+    .footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid #eee; text-align: center; }
+    @media print { body { background: #fff; padding: 0; } .invoice { border: 0; } }
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <div class="top">
+      <div>
+        <div class="brand">WILDCORE</div>
+        <div class="muted">FRAGRANCES<br/>Wear The Wild</div>
+      </div>
+      <div style="text-align:right;">
+        <h2 style="margin:0;">INVOICE</h2>
+        <div class="muted">Invoice No: <b>${invoice.invoiceNo}</b></div>
+        <div class="muted">Date: ${new Date(invoice.date).toLocaleDateString('en-IN')}</div>
+        <div class="muted">Payment: <b class="gold">${invoice.paymentStatus.toUpperCase()}</b></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Bill To</h3>
+      <div><b>${invoice.buyerName}</b></div>
+      <div class="muted">Phone: ${invoice.buyerPhone || '-'}</div>
+      <div class="muted">Address: ${invoice.buyerAddress || '-'}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left;">Product</th>
+          <th>Qty</th>
+          <th style="text-align:right;">Price</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody>${itemsRows}</tbody>
+    </table>
+
+    <div class="totals">
+      <div><span>Subtotal</span><b>₹${invoice.subtotal.toFixed(2)}</b></div>
+      <div><span>Delivery</span><b>₹${invoice.deliveryCharge.toFixed(2)}</b></div>
+      <div><span>Discount</span><b>- ₹${invoice.discount.toFixed(2)}</b></div>
+      <div class="grand"><span>Grand Total</span><span>₹${invoice.grandTotal.toFixed(2)}</span></div>
+    </div>
+
+    ${invoice.notes ? `<div class="section"><b>Notes:</b><div class="muted">${invoice.notes}</div></div>` : ''}
+
+    <div class="footer">
+      <b>Thank you for choosing Wildcore Fragrances.</b>
+      <div class="muted">Drive Your Instinct • Wear The Wild</div>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const downloadInvoice = (invoice: Invoice) => {
+    const html = buildInvoiceHtml(invoice);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoice.invoiceNo}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const printInvoice = (invoice: Invoice) => {
+    const win = window.open('', '_blank');
+    if (!win) return alert('Please allow popups to print invoice');
+    win.document.open();
+    win.document.write(buildInvoiceHtml(invoice));
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 500);
+  };
+
+  const saveInvoice = async () => {
+    if (!invoiceForm.invoiceNo.trim()) return alert('Invoice number is required');
+    if (!invoiceForm.buyerName.trim()) return alert('Buyer name is required');
+    if (invoiceForm.items.some(i => !i.productName.trim() || Number(i.qty) <= 0 || Number(i.price) <= 0)) {
+      return alert('Fill all product details correctly');
+    }
+
+    setSaving(true);
+
+    const invoiceData = {
+      invoiceNo: invoiceForm.invoiceNo.trim(),
+      buyerName: invoiceForm.buyerName.trim(),
+      buyerPhone: invoiceForm.buyerPhone.trim(),
+      buyerAddress: invoiceForm.buyerAddress.trim(),
+      date: invoiceForm.date,
+      items: invoiceForm.items.map(i => ({
+        productName: i.productName.trim(),
+        qty: Number(i.qty),
+        price: Number(i.price),
+      })),
+      subtotal: invoiceSubtotal,
+      discount: Number(invoiceForm.discount || 0),
+      deliveryCharge: Number(invoiceForm.deliveryCharge || 0),
+      grandTotal: invoiceGrandTotal,
+      paymentStatus: invoiceForm.paymentStatus,
+      notes: invoiceForm.notes.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const ref = await addDoc(collection(db, 'invoices'), invoiceData);
+    const savedInvoice = { id: ref.id, ...invoiceData } as Invoice;
+
+    setInvoices(prev => [savedInvoice, ...prev]);
+    setInvoiceForm({
+      ...emptyInvoiceForm,
+      invoiceNo: createAutoInvoiceNo(),
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setSelectedInvoice(savedInvoice);
+    setSaving(false);
+  };
+
+  const deleteInvoice = async (invoiceId: string) => {
+    const ok = confirm('Delete this invoice from history?');
+    if (!ok) return;
+
+    await deleteDoc(doc(db, 'invoices', invoiceId));
+    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+    if (selectedInvoice?.id === invoiceId) setSelectedInvoice(null);
+  };
+
   const statusColors = {
     delivered: 'text-green-400 bg-green-400/10',
     shipped: 'text-blue-400 bg-blue-400/10',
@@ -504,6 +761,7 @@ const pendingAmount = orders
   { key: 'products', label: 'Products', icon: Boxes },
   { key: 'b2b', label: 'B2B', icon: Briefcase },
   { key: 'subscribers', label: 'Subscribers', icon: Mail },
+  { key: 'invoices', label: 'Invoices', icon: FileText },
 ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -848,6 +1106,245 @@ const pendingAmount = orders
         </div>
       ))
     )}
+  </div>
+)}
+{tab === 'invoices' && (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="glass rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Bill Generator</p>
+          <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Create Invoice</h2>
+        </div>
+        <FileText size={28} className="text-gold" />
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input
+            value={invoiceForm.invoiceNo}
+            onChange={e => setInvoiceForm(prev => ({ ...prev, invoiceNo: e.target.value }))}
+            placeholder="Invoice No"
+            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+          />
+          <input
+            type="date"
+            value={invoiceForm.date}
+            onChange={e => setInvoiceForm(prev => ({ ...prev, date: e.target.value }))}
+            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+          />
+        </div>
+
+        <input
+          value={invoiceForm.buyerName}
+          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerName: e.target.value }))}
+          placeholder="Buyer name"
+          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+        />
+
+        <input
+          value={invoiceForm.buyerPhone}
+          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
+          placeholder="Phone number"
+          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+        />
+
+        <textarea
+          value={invoiceForm.buyerAddress}
+          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerAddress: e.target.value }))}
+          placeholder="Buyer address"
+          rows={2}
+          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+        />
+
+        <div className="space-y-3">
+          <p className="text-xs tracking-widest uppercase text-[var(--text-muted)]">Products</p>
+          {invoiceForm.items.map((item, index) => (
+            <div key={index} className="glass rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <input
+                value={item.productName}
+                onChange={e => updateInvoiceItem(index, 'productName', e.target.value)}
+                placeholder="Product name"
+                className="md:col-span-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
+              />
+              <input
+                type="number"
+                value={item.qty}
+                onChange={e => updateInvoiceItem(index, 'qty', Number(e.target.value))}
+                placeholder="Qty"
+                className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={item.price}
+                  onChange={e => updateInvoiceItem(index, 'price', Number(e.target.value))}
+                  placeholder="Price"
+                  className="flex-1 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
+                />
+                {invoiceForm.items.length > 1 && (
+                  <button
+                    onClick={() => removeInvoiceItem(index)}
+                    className="px-3 rounded-xl bg-red-500/10 text-red-400"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={addInvoiceItem}
+            className="text-sm text-gold hover:text-gold-light transition-colors"
+          >
+            + Add product
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input
+            type="number"
+            value={invoiceForm.deliveryCharge}
+            onChange={e => setInvoiceForm(prev => ({ ...prev, deliveryCharge: Number(e.target.value) }))}
+            placeholder="Delivery"
+            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+          />
+          <input
+            type="number"
+            value={invoiceForm.discount}
+            onChange={e => setInvoiceForm(prev => ({ ...prev, discount: Number(e.target.value) }))}
+            placeholder="Discount"
+            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+          />
+          <select
+            value={invoiceForm.paymentStatus}
+            onChange={e => setInvoiceForm(prev => ({ ...prev, paymentStatus: e.target.value as 'paid' | 'unpaid' }))}
+            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+          >
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+
+        <textarea
+          value={invoiceForm.notes}
+          onChange={e => setInvoiceForm(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Notes / delivery details"
+          rows={2}
+          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+        />
+
+        <div className="glass rounded-xl p-4 space-y-2 text-sm">
+          <div className="flex justify-between text-[var(--text-muted)]"><span>Subtotal</span><span>₹{invoiceSubtotal.toFixed(2)}</span></div>
+          <div className="flex justify-between text-[var(--text-muted)]"><span>Delivery</span><span>₹{Number(invoiceForm.deliveryCharge || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between text-[var(--text-muted)]"><span>Discount</span><span>- ₹{Number(invoiceForm.discount || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between text-lg font-bold border-t border-[var(--border)] pt-2"><span>Grand Total</span><span className="text-gold">₹{invoiceGrandTotal.toFixed(2)}</span></div>
+        </div>
+
+        <button
+          onClick={saveInvoice}
+          disabled={saving}
+          className="w-full bg-gold text-black font-semibold py-4 rounded-xl hover:bg-gold-light transition-all disabled:opacity-60"
+        >
+          {saving ? 'Saving...' : 'Save Invoice'}
+        </button>
+      </div>
+    </div>
+
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">History</p>
+            <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Invoices</h2>
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">{invoices.length} saved</p>
+        </div>
+
+        {invoices.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)] italic text-center py-10">No invoices generated yet.</p>
+        ) : (
+          <div className="space-y-3 max-h-[720px] overflow-y-auto pr-1">
+            {invoices.map(invoice => (
+              <div key={invoice.id} className="glass rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text)]">{invoice.invoiceNo}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">{invoice.buyerName} • {new Date(invoice.date).toLocaleDateString('en-IN')}</p>
+                    <p className="text-sm text-gold font-semibold mt-1">₹{invoice.grandTotal.toFixed(2)}</p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-1 rounded-full uppercase ${invoice.paymentStatus === 'paid' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}`}>
+                    {invoice.paymentStatus}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <button
+                    onClick={() => setSelectedInvoice(invoice)}
+                    className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
+                  >
+                    <Eye size={13} /> View
+                  </button>
+                  <button
+                    onClick={() => printInvoice(invoice)}
+                    className="flex items-center gap-1 text-xs bg-gold/10 text-gold px-3 py-2 rounded-lg hover:bg-gold/20 transition-all"
+                  >
+                    <Download size={13} /> Print / PDF
+                  </button>
+                  <button
+                    onClick={() => downloadInvoice(invoice)}
+                    className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text-muted)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
+                  >
+                    HTML
+                  </button>
+                  <button
+                    onClick={() => deleteInvoice(invoice.id)}
+                    className="flex items-center gap-1 text-xs bg-red-500/10 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/20 transition-all"
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedInvoice && (
+        <div className="glass rounded-2xl p-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Preview</p>
+              <h3 className="font-serif text-xl font-bold text-[var(--text)]">{selectedInvoice.invoiceNo}</h3>
+              <p className="text-xs text-[var(--text-muted)] mt-1">{selectedInvoice.buyerName}</p>
+            </div>
+            <button onClick={() => setSelectedInvoice(null)} className="text-[var(--text-muted)] hover:text-red-400"><X size={18} /></button>
+          </div>
+
+          <div className="space-y-2 text-sm border-t border-[var(--border)] pt-4">
+            {selectedInvoice.items.map((item, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <span className="text-[var(--text-muted)]">{item.productName} × {item.qty}</span>
+                <span className="text-[var(--text)]">₹{(item.qty * item.price).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-[var(--border)] mt-4 pt-4 space-y-2 text-sm">
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Subtotal</span><span>₹{selectedInvoice.subtotal.toFixed(2)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Delivery</span><span>₹{selectedInvoice.deliveryCharge.toFixed(2)}</span></div>
+            <div className="flex justify-between text-[var(--text-muted)]"><span>Discount</span><span>- ₹{selectedInvoice.discount.toFixed(2)}</span></div>
+            <div className="flex justify-between text-lg font-bold"><span>Total</span><span className="text-gold">₹{selectedInvoice.grandTotal.toFixed(2)}</span></div>
+          </div>
+
+          <div className="flex gap-2 mt-5">
+            <button onClick={() => printInvoice(selectedInvoice)} className="flex-1 bg-gold text-black font-semibold py-3 rounded-xl hover:bg-gold-light transition-all">Print / Save PDF</button>
+            <button onClick={() => downloadInvoice(selectedInvoice)} className="flex-1 bg-white/10 text-[var(--text)] font-semibold py-3 rounded-xl hover:bg-white/15 transition-all">Download HTML</button>
+          </div>
+        </div>
+      )}
+    </div>
   </div>
 )}
 {tab === 'subscribers' && (
