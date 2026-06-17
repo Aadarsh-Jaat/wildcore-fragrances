@@ -115,6 +115,7 @@ interface WhatsAppClick {
   customerName?: string;
   phone?: string;
   email?: string;
+  address?: string;
   message: string;
   whatsappLink: string;
   source: 'product_page' | 'cart' | 'homepage' | 'custom';
@@ -1593,122 +1594,184 @@ export default function Admin() {
             )}
 
             {/* WHATSAPP LEADS TAB */}
-            {tab === 'whatsapp' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      Total Leads: <span className="text-gold font-semibold">{whatsappClicks.length}</span>
-                    </p>
-                    <div className="flex gap-4 mt-1 text-xs flex-wrap">
-                      <span className="text-yellow-400">New: {whatsappClicks.filter(w => w.status === 'new').length}</span>
-                      <span className="text-blue-400">Contacted: {whatsappClicks.filter(w => w.status === 'contacted').length}</span>
-                      <span className="text-green-400">Ordered: {whatsappClicks.filter(w => w.status === 'ordered').length}</span>
-                      <span className="text-purple-400">Converted: {whatsappClicks.filter(w => w.status === 'converted').length}</span>
-                      <span className="text-red-400">Lost: {whatsappClicks.filter(w => w.status === 'lost').length}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => window.open('/whatsapp-order', '_blank')}
-                    className="text-sm bg-green-500/10 text-green-400 px-4 py-2 rounded-xl hover:bg-green-500/20 transition-all"
+{tab === 'whatsapp' && (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <p className="text-sm text-[var(--text-muted)]">
+          Total Leads: <span className="text-gold font-semibold">{whatsappClicks.length}</span>
+        </p>
+        <div className="flex gap-4 mt-1 text-xs flex-wrap">
+          <span className="text-yellow-400">🟡 New: {whatsappClicks.filter(w => w.status === 'new').length}</span>
+          <span className="text-blue-400">🔵 Contacted: {whatsappClicks.filter(w => w.status === 'contacted').length}</span>
+          <span className="text-green-400">🟢 Ordered: {whatsappClicks.filter(w => w.status === 'ordered').length}</span>
+          <span className="text-purple-400">🟣 Converted: {whatsappClicks.filter(w => w.status === 'converted').length}</span>
+          <span className="text-red-400">🔴 Lost: {whatsappClicks.filter(w => w.status === 'lost').length}</span>
+        </div>
+      </div>
+      <button
+        onClick={() => window.open('/whatsapp-order', '_blank')}
+        className="text-sm bg-green-500/10 text-green-400 px-4 py-2 rounded-xl hover:bg-green-500/20 transition-all"
+      >
+        ➕ New WhatsApp Order
+      </button>
+    </div>
+
+    {whatsappClicks.length === 0 ? (
+      <div className="text-center py-20">
+        <Send size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
+        <p className="text-[var(--text-muted)] italic">No WhatsApp leads yet.</p>
+      </div>
+    ) : (
+      whatsappClicks.map(click => (
+        <div key={click.id} className="glass rounded-2xl p-6">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            {/* LEFT - All Details */}
+            <div className="flex-1 space-y-2">
+              {/* Product Line */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-[var(--text)]">{click.productName}</span>
+                {click.volume && (
+                  <span className="text-xs bg-gold/10 text-gold px-2 py-0.5 rounded-full">
+                    {click.volume}ml
+                  </span>
+                )}
+                <span className="text-sm font-bold text-gold">₹{click.productPrice}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  click.source === 'product_page' ? 'bg-blue-400/10 text-blue-400' :
+                  click.source === 'cart' ? 'bg-purple-400/10 text-purple-400' :
+                  'bg-gray-400/10 text-gray-400'
+                }`}>
+                  {click.source}
+                </span>
+              </div>
+
+              {/* Customer Name & Phone */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {click.customerName && (
+                  <span className="text-sm text-[var(--text)]">👤 {click.customerName}</span>
+                )}
+                {click.phone && (
+                  <a
+                    href={`https://wa.me/91${click.phone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-green-400 hover:text-green-300 flex items-center gap-1"
                   >
-                    + New WhatsApp Order
-                  </button>
-                </div>
-
-                {whatsappClicks.length === 0 ? (
-                  <div className="text-center py-20">
-                    <Send size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
-                    <p className="text-[var(--text-muted)] italic">No WhatsApp leads yet.</p>
-                  </div>
-                ) : (
-                  whatsappClicks.map(click => (
-                    <div key={click.id} className="glass rounded-2xl p-6">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <p className="font-semibold text-[var(--text)]">{click.productName}</p>
-                            {click.volume && (
-                              <span className="text-xs bg-gold/10 text-gold px-2 py-1 rounded-full">
-                                {click.volume}ml
-                              </span>
-                            )}
-                            <span className="text-xs text-[var(--text-muted)]">₹{click.productPrice}</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              click.source === 'product_page' ? 'bg-blue-400/10 text-blue-400' :
-                              click.source === 'cart' ? 'bg-purple-400/10 text-purple-400' :
-                              'bg-gray-400/10 text-gray-400'
-                            }`}>
-                              {click.source}
-                            </span>
-                          </div>
-                          {click.customerName && (
-                            <p className="text-sm text-[var(--text)] mt-2">👤 {click.customerName}</p>
-                          )}
-                          {click.phone && (
-                            <a href={`https://wa.me/91${click.phone}`} target="_blank" rel="noopener noreferrer" 
-                               className="text-sm text-green-400 hover:text-green-300 flex items-center gap-1">
-                              📞 {click.phone}
-                            </a>
-                          )}
-                          <p className="text-xs text-[var(--text-muted)] mt-1">
-                            {new Date(click.createdAt).toLocaleString('en-IN')}
-                          </p>
-                          {click.notes && (
-                            <p className="text-xs text-gold mt-1">📝 {click.notes}</p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-2 min-w-[140px]">
-                          <select
-                            value={click.status}
-                            onChange={async e => {
-                              const newStatus = e.target.value as WhatsAppClick['status'];
-                              await updateWhatsAppStatus(click.id, newStatus);
-                            }}
-                            className={`text-xs px-3 py-1.5 rounded-lg border ${
-                              click.status === 'new' ? 'border-yellow-400/30 bg-yellow-400/10 text-yellow-400' :
-                              click.status === 'contacted' ? 'border-blue-400/30 bg-blue-400/10 text-blue-400' :
-                              click.status === 'ordered' ? 'border-green-400/30 bg-green-400/10 text-green-400' :
-                              click.status === 'converted' ? 'border-purple-400/30 bg-purple-400/10 text-purple-400' :
-                              'border-red-400/30 bg-red-400/10 text-red-400'
-                            }`}
-                          >
-                            <option value="new">New</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="ordered">Ordered</option>
-                            <option value="converted">Converted</option>
-                            <option value="lost">Lost</option>
-                          </select>
-
-                          <div className="flex gap-2">
-                            <a
-                              href={click.whatsappLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 text-xs bg-green-500/10 text-green-400 px-3 py-1.5 rounded-lg hover:bg-green-500/20 transition-all text-center"
-                            >
-                              WhatsApp
-                            </a>
-                            <button
-                              onClick={() => {
-                                const notes = prompt('Add note:', click.notes || '');
-                                if (notes !== null) {
-                                  updateWhatsAppStatus(click.id, click.status, notes);
-                                }
-                              }}
-                              className="text-xs bg-gold/10 text-gold px-2 py-1.5 rounded-lg hover:bg-gold/20 transition-all"
-                            >
-                              📝
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                    📞 {click.phone}
+                  </a>
                 )}
               </div>
-            )}
+
+              {/* Address */}
+              {click.address && (
+                <div className="bg-[var(--bg3)] rounded-lg p-2">
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">📍 Delivery Address</p>
+                  <p className="text-sm text-[var(--text)]">{click.address}</p>
+                </div>
+              )}
+
+              {/* Message Preview */}
+              {click.message && (
+                <div className="bg-[var(--bg3)] rounded-lg p-2 max-h-20 overflow-y-auto">
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">📝 Message</p>
+                  <p className="text-xs text-[var(--text-muted)] whitespace-pre-line line-clamp-3">{click.message}</p>
+                </div>
+              )}
+
+              {/* Timestamp & Notes */}
+              <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
+                <span>📅 {new Date(click.createdAt).toLocaleString('en-IN')}</span>
+                {click.notes && <span className="text-gold">📌 {click.notes}</span>}
+              </div>
+            </div>
+
+            {/* RIGHT - Actions */}
+            <div className="flex flex-col gap-2 min-w-[140px]">
+              {/* Status */}
+              <select
+                value={click.status}
+                onChange={async e => {
+                  const newStatus = e.target.value as WhatsAppClick['status'];
+                  await updateWhatsAppStatus(click.id, newStatus);
+                }}
+                className={`text-xs px-3 py-1.5 rounded-lg border ${
+                  click.status === 'new' ? 'border-yellow-400/30 bg-yellow-400/10 text-yellow-400' :
+                  click.status === 'contacted' ? 'border-blue-400/30 bg-blue-400/10 text-blue-400' :
+                  click.status === 'ordered' ? 'border-green-400/30 bg-green-400/10 text-green-400' :
+                  click.status === 'converted' ? 'border-purple-400/30 bg-purple-400/10 text-purple-400' :
+                  'border-red-400/30 bg-red-400/10 text-red-400'
+                }`}
+              >
+                <option value="new">🟡 New</option>
+                <option value="contacted">🔵 Contacted</option>
+                <option value="ordered">🟢 Ordered</option>
+                <option value="converted">🟣 Converted</option>
+                <option value="lost">🔴 Lost</option>
+              </select>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <a
+                  href={click.whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-xs bg-green-500/10 text-green-400 px-3 py-1.5 rounded-lg hover:bg-green-500/20 transition-all text-center"
+                >
+                  💬 Chat
+                </a>
+                <button
+                  onClick={() => {
+                    const notes = prompt('Add note:', click.notes || '');
+                    if (notes !== null) {
+                      updateWhatsAppStatus(click.id, click.status, notes);
+                    }
+                  }}
+                  className="text-xs bg-gold/10 text-gold px-2 py-1.5 rounded-lg hover:bg-gold/20 transition-all"
+                  title="Add Note"
+                >
+                  📝
+                </button>
+              </div>
+
+              {/* Copy Details */}
+              <button
+                onClick={() => {
+                  const details = `👤 Customer: ${click.customerName || 'N/A'}\n📞 Phone: ${click.phone || 'N/A'}\n📍 Address: ${click.address || 'N/A'}\n🛍️ Product: ${click.productName}\n💰 Total: ₹${click.productPrice}\n📅 Date: ${new Date(click.createdAt).toLocaleString('en-IN')}`;
+                  navigator.clipboard.writeText(details);
+                  alert('✅ Customer details copied to clipboard!');
+                }}
+                className="text-xs bg-white/5 text-[var(--text-muted)] px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all"
+              >
+                📋 Copy All
+              </button>
+
+              {/* 🗑️ DELETE BUTTON - NEW */}
+              <button
+                onClick={async () => {
+                  const confirmDelete = confirm(`Delete this lead?\n\nCustomer: ${click.customerName || 'Unknown'}\nProduct: ${click.productName}\n\nThis action cannot be undone.`);
+                  if (!confirmDelete) return;
+                  
+                  try {
+                    await deleteDoc(doc(db, 'whatsappClicks', click.id));
+                    setWhatsappClicks(prev => prev.filter(w => w.id !== click.id));
+                    alert('✅ Lead deleted successfully!');
+                  } catch (error) {
+                    console.error('Error deleting lead:', error);
+                    alert('❌ Failed to delete lead. Please try again.');
+                  }
+                }}
+                className="text-xs bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-all flex items-center justify-center gap-1"
+              >
+                <Trash2 size={12} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
           </>
         )}
       </div>

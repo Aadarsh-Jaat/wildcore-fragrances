@@ -103,75 +103,23 @@ export default function ProductDetail() {
   };
 
   const handleWhatsAppClick = async () => {
-    // Validate required fields
-    if (!product || !selectedVolume) {
-      alert('Product not available. Please try again.');
-      return;
-    }
+  // Validate required fields
+  if (!product || !selectedVolume) {
+    alert('Product not available. Please try again.');
+    return;
+  }
 
-    if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
-      alert('Please fill in your Name, Phone, and Address before ordering.');
-      return;
-    }
+  if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
+    alert('Please fill in your Name, Phone, and Address before ordering.');
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      const total = (selectedVolume.price * qty).toFixed(2);
-      
-      const message = `🧾 *Wildcore Fragrances - New Order*
-
-👤 *Customer:* ${customerName}
-📞 *Phone:* ${customerPhone}
-📍 *Address:* ${customerAddress}
-
-🛍️ *Product Details:*
-• *Product:* ${product.name}
-• *Volume:* ${selectedVolume.ml}ml
-• *Quantity:* ${qty}
-• *Price:* ₹${selectedVolume.price}/unit
-• *Total:* ₹${total}
-
----
-*I would like to place this order. Please confirm.*`;
-
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappLink = `https://wa.me/${WHATSAPP}?text=${encodedMessage}`;
-
-      // Track the WhatsApp click in Firebase
-      console.log('📤 Tracking WhatsApp click for product:', product.name);
-      
-      await trackWhatsAppClick({
-        productId: product.id,
-        productName: product.name,
-        productPrice: selectedVolume.price,
-        volume: selectedVolume.ml,
-        customerName: customerName.trim(),
-        phone: customerPhone.trim(),
-        email: '',
-        message: message,
-        whatsappLink: whatsappLink,
-        source: 'product_page',
-      });
-
-      console.log('✅ WhatsApp click tracked successfully!');
-      
-      // Open WhatsApp
-      window.open(whatsappLink, '_blank');
-      
-      // Close popup and reset
-      setShowWhatsAppPopup(false);
-      setCustomerName('');
-      setCustomerPhone('');
-      setCustomerAddress('');
-      
-      addToast('Order sent via WhatsApp! 📱');
-      
-    } catch (error) {
-      console.error('❌ Error tracking WhatsApp click:', error);
-      // Still open WhatsApp even if tracking fails
-      const total = (selectedVolume.price * qty).toFixed(2);
-      const message = `🧾 *Wildcore Fragrances - New Order*
+  try {
+    const total = (selectedVolume.price * qty).toFixed(2);
+    
+    const message = `🧾 *Wildcore Fragrances - New Order*
 
 👤 *Customer:* ${customerName}
 📞 *Phone:* ${customerPhone}
@@ -186,14 +134,66 @@ export default function ProductDetail() {
 
 ---
 *I would like to place this order. Please confirm.*`;
-      
-      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`, '_blank');
-      setShowWhatsAppPopup(false);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappLink = `https://wa.me/${WHATSAPP}?text=${encodedMessage}`;
+
+    // Track the WhatsApp click in Firebase - FIXED: total price
+    console.log('📤 Tracking WhatsApp click for product:', product.name);
+    console.log('📦 Quantity:', qty, '| Total Price: ₹' + total);
+    
+    await trackWhatsAppClick({
+      productId: product.id,
+      productName: product.name,
+      productPrice: selectedVolume.price * qty,  // ← FIXED: Now saves total price!
+      volume: selectedVolume.ml,
+      customerName: customerName.trim(),
+      phone: customerPhone.trim(),
+      email: '',
+      message: message,
+      whatsappLink: whatsappLink,
+      source: 'product_page',
+    });
+
+    console.log('✅ WhatsApp click tracked successfully!');
+    
+    // Open WhatsApp
+    window.open(whatsappLink, '_blank');
+    
+    // Close popup and reset
+    setShowWhatsAppPopup(false);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
+    
+    addToast('Order sent via WhatsApp! 📱');
+    
+  } catch (error) {
+    console.error('❌ Error tracking WhatsApp click:', error);
+    // Still open WhatsApp even if tracking fails
+    const total = (selectedVolume.price * qty).toFixed(2);
+    const message = `🧾 *Wildcore Fragrances - New Order*
+
+👤 *Customer:* ${customerName}
+📞 *Phone:* ${customerPhone}
+📍 *Address:* ${customerAddress}
+
+🛍️ *Product Details:*
+• *Product:* ${product.name}
+• *Volume:* ${selectedVolume.ml}ml
+• *Quantity:* ${qty}
+• *Price:* ₹${selectedVolume.price}/unit
+• *Total:* ₹${total}
+
+---
+*I would like to place this order. Please confirm.*`;
+    
+    window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`, '_blank');
+    setShowWhatsAppPopup(false);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
