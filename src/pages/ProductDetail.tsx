@@ -13,12 +13,15 @@ import {
   Minus,
   ChevronDown,
   ChevronUp,
+  Send,
+  X,
 } from 'lucide-react';
 import { getProductById, getProducts } from '../services/productService';
 import type { Product, ProductVolume } from '../services/productService';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import ProductCard from '../components/ProductCard';
+import { trackWhatsAppClick } from '../services/whatsappTracker';
 
 const WHATSAPP = '917056713252';
 
@@ -36,9 +39,13 @@ export default function ProductDetail() {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isZoomed, setIsZoomed] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // WhatsApp Popup State
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -80,6 +87,120 @@ export default function ProductDetail() {
     loadProduct();
   }, [id]);
 
+  const handleAddToCart = () => {
+    if (!selectedVolume || !product) return;
+
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: selectedVolume.price,
+      image: product.image,
+      volume: selectedVolume.ml,
+      quantity: qty,
+    });
+
+    addToast(`${product.name} (${selectedVolume.ml}ml) added to cart`);
+  };
+
+  const handleWhatsAppClick = async () => {
+    // Validate required fields
+    if (!product || !selectedVolume) {
+      alert('Product not available. Please try again.');
+      return;
+    }
+
+    if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
+      alert('Please fill in your Name, Phone, and Address before ordering.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const total = (selectedVolume.price * qty).toFixed(2);
+      
+      const message = `🧾 *Wildcore Fragrances - New Order*
+
+👤 *Customer:* ${customerName}
+📞 *Phone:* ${customerPhone}
+📍 *Address:* ${customerAddress}
+
+🛍️ *Product Details:*
+• *Product:* ${product.name}
+• *Volume:* ${selectedVolume.ml}ml
+• *Quantity:* ${qty}
+• *Price:* ₹${selectedVolume.price}/unit
+• *Total:* ₹${total}
+
+---
+*I would like to place this order. Please confirm.*`;
+
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappLink = `https://wa.me/${WHATSAPP}?text=${encodedMessage}`;
+
+      // Track the WhatsApp click in Firebase
+      console.log('📤 Tracking WhatsApp click for product:', product.name);
+      
+      await trackWhatsAppClick({
+        productId: product.id,
+        productName: product.name,
+        productPrice: selectedVolume.price,
+        volume: selectedVolume.ml,
+        customerName: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: '',
+        message: message,
+        whatsappLink: whatsappLink,
+        source: 'product_page',
+      });
+
+      console.log('✅ WhatsApp click tracked successfully!');
+      
+      // Open WhatsApp
+      window.open(whatsappLink, '_blank');
+      
+      // Close popup and reset
+      setShowWhatsAppPopup(false);
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerAddress('');
+      
+      addToast('Order sent via WhatsApp! 📱');
+      
+    } catch (error) {
+      console.error('❌ Error tracking WhatsApp click:', error);
+      // Still open WhatsApp even if tracking fails
+      const total = (selectedVolume.price * qty).toFixed(2);
+      const message = `🧾 *Wildcore Fragrances - New Order*
+
+👤 *Customer:* ${customerName}
+📞 *Phone:* ${customerPhone}
+📍 *Address:* ${customerAddress}
+
+🛍️ *Product Details:*
+• *Product:* ${product.name}
+• *Volume:* ${selectedVolume.ml}ml
+• *Quantity:* ${qty}
+• *Price:* ₹${selectedVolume.price}/unit
+• *Total:* ₹${total}
+
+---
+*I would like to place this order. Please confirm.*`;
+      
+      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`, '_blank');
+      setShowWhatsAppPopup(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({ x, y });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-20">
@@ -110,58 +231,6 @@ export default function ProductDetail() {
     const order: Record<number, number> = { 30: 0, 8: 1, 50: 2, 100: 3 };
     return (order[a.ml] ?? 99) - (order[b.ml] ?? 99);
   });
-
-  const handleAddToCart = () => {
-    if (!selectedVolume) return;
-
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: selectedVolume.price,
-      image: product.image,
-      volume: selectedVolume.ml,
-      quantity: qty,
-    });
-
-    addToast(`${product.name} (${selectedVolume.ml}${unitLabel}) added to cart`);
-  };
-
-  const handleWhatsApp = () => {
-    if (!customerName || !customerPhone || !customerAddress) {
-      alert('Please fill your name, phone and address before ordering.');
-      return;
-    }
-
-    const msg = `Hi Wildcore Fragrances!
-
-I would like to place an order.
-
-CUSTOMER DETAILS
-Name: ${customerName}
-Phone: ${customerPhone}
-Address: ${customerAddress}
-
-ORDER DETAILS
-Product: ${product.name}
-Volume: ${selectedVolume?.ml}ml
-Quantity: ${qty}
-Price: ₹${selectedVolume?.price}
-Total: ₹${((selectedVolume?.price || 0) * qty).toFixed(2)}
-
-Please confirm my order.`;
-
-    window.open(
-      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
-      '_blank'
-    );
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setZoomPos({ x, y });
-  };
 
   return (
     <div className="min-h-screen bg-[var(--bg)] pt-24 pb-20">
@@ -358,12 +427,13 @@ Please confirm my order.`;
             </div>
 
             <div className="mt-8 space-y-4">
+              {/* Customer Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="relative">
                   <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
                   <input
                     type="text"
-                    placeholder="Full Name"
+                    placeholder="Full Name *"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl pl-11 pr-4 py-4 text-sm text-[var(--text)]"
@@ -374,7 +444,7 @@ Please confirm my order.`;
                   <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
                   <input
                     type="tel"
-                    placeholder="Phone Number"
+                    placeholder="Phone Number *"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl pl-11 pr-4 py-4 text-sm text-[var(--text)]"
@@ -385,7 +455,7 @@ Please confirm my order.`;
               <div className="relative">
                 <MapPin size={16} className="absolute left-4 top-4 text-gold" />
                 <textarea
-                  placeholder="Delivery Address"
+                  placeholder="Delivery Address *"
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   rows={3}
@@ -404,7 +474,7 @@ Please confirm my order.`;
                 </button>
 
                 <button
-                  onClick={handleWhatsApp}
+                  onClick={() => setShowWhatsAppPopup(true)}
                   className="w-full flex items-center justify-center gap-2 py-4 bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold rounded-xl transition-all"
                 >
                   <MessageCircle size={18} />
@@ -439,6 +509,61 @@ Please confirm my order.`;
           </div>
         )}
       </div>
+
+      {/* WhatsApp Confirmation Popup */}
+      {showWhatsAppPopup && (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass rounded-3xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-xl font-bold text-[var(--text)]">
+                Confirm Order
+              </h3>
+              <button
+                onClick={() => setShowWhatsAppPopup(false)}
+                className="text-[var(--text-muted)] hover:text-red-400 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="bg-[var(--bg3)] rounded-xl p-3">
+                <p className="text-[var(--text-muted)] text-xs">Product</p>
+                <p className="text-[var(--text)] font-medium">{product.name} ({selectedVolume?.ml}ml)</p>
+              </div>
+
+              <div className="bg-[var(--bg3)] rounded-xl p-3">
+                <p className="text-[var(--text-muted)] text-xs">Customer</p>
+                <p className="text-[var(--text)] font-medium">{customerName}</p>
+                <p className="text-[var(--text-muted)] text-xs">{customerPhone}</p>
+              </div>
+
+              <div className="bg-[var(--bg3)] rounded-xl p-3">
+                <p className="text-[var(--text-muted)] text-xs">Address</p>
+                <p className="text-[var(--text)] text-sm">{customerAddress}</p>
+              </div>
+
+              <div className="bg-[var(--bg3)] rounded-xl p-3">
+                <p className="text-[var(--text-muted)] text-xs">Total</p>
+                <p className="text-gold font-bold text-lg">₹{(selectedVolume?.price || 0) * qty}</p>
+              </div>
+
+              <button
+                onClick={handleWhatsAppClick}
+                disabled={isSubmitting}
+                className="w-full bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Send size={18} />
+                {isSubmitting ? 'Sending...' : 'Send on WhatsApp'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

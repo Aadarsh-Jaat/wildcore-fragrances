@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  orderBy,
   addDoc,
 } from "firebase/firestore";
 
@@ -26,6 +27,7 @@ import {
   FileText,
   Download,
   Eye,
+  Send,
 } from 'lucide-react';
 import {
   getProducts,
@@ -40,7 +42,7 @@ import {
 } from '../services/b2bService';
 import type { Product } from '../services/productService';
 
-type Tab = 'orders' | 'users' | 'products' | 'b2b' | 'subscribers' | 'invoices';
+type Tab = 'orders' | 'users' | 'products' | 'b2b' | 'subscribers' | 'invoices' | 'whatsapp';
 type ProductForm = Omit<Product, 'id'>;
 
 interface FirestoreUser {
@@ -71,12 +73,14 @@ interface Order {
   paymentStatus: 'paid' | 'unpaid';
   note?: string;
 }
+
 interface Subscriber {
   id: string;
   email: string;
   source: string;
   createdAt?: any;
 }
+
 interface InvoiceItem {
   productName: string;
   qty: number;
@@ -95,9 +99,30 @@ interface Invoice {
   discount: number;
   deliveryCharge: number;
   grandTotal: number;
-  paymentStatus: 'paid' | 'unpaid';
+  advanceReceived: number;
+  balanceDue: number;
+  paymentStatus: 'unpaid' | 'partial' | 'paid';
   notes?: string;
   createdAt?: any;
+}
+
+interface WhatsAppClick {
+  id: string;
+  productId: string;
+  productName: string;
+  productPrice: number;
+  volume?: number;
+  customerName?: string;
+  phone?: string;
+  email?: string;
+  message: string;
+  whatsappLink: string;
+  source: 'product_page' | 'cart' | 'homepage' | 'custom';
+  status: 'new' | 'contacted' | 'ordered' | 'converted' | 'lost';
+  notes?: string;
+  createdAt: any;
+  userAgent?: string;
+  ip?: string;
 }
 
 const createAutoInvoiceNo = () => {
@@ -115,9 +140,12 @@ const emptyInvoiceForm = {
   items: [{ productName: '', qty: 1, price: 0 }] as InvoiceItem[],
   discount: 0,
   deliveryCharge: 0,
-  paymentStatus: 'unpaid' as 'paid' | 'unpaid',
+  advanceReceived: 0,
+  balanceDue: 0,
+  paymentStatus: 'unpaid' as 'unpaid' | 'partial' | 'paid',
   notes: '',
 };
+
 const emptyProductForm: ProductForm = {
   name: '',
   tagline: '',
@@ -148,6 +176,7 @@ export default function Admin() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // State
   const [tab, setTab] = useState<Tab>('orders');
   const [users, setUsers] = useState<FirestoreUser[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -155,8 +184,10 @@ export default function Admin() {
   const [b2bInquiries, setB2BInquiries] = useState<B2BInquiry[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [whatsappClicks, setWhatsappClicks] = useState<WhatsAppClick[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Order Modal
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
@@ -165,80 +196,97 @@ export default function Admin() {
   const [orderNote, setOrderNote] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid');
 
+  // Product Modal
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productId, setProductId] = useState('');
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
 
+  // Invoice
   const [saving, setSaving] = useState(false);
-
   const [invoiceForm, setInvoiceForm] = useState(emptyInvoiceForm);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
+  // Auth check
   useEffect(() => {
     if (user && user.role !== 'admin') navigate('/');
   }, [user, navigate]);
 
+  // Fetch data
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const usersData = usersSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data(),
-    })) as FirestoreUser[];
+    try {
+      // Users
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const usersData = usersSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })) as FirestoreUser[];
+      setUsers(usersData);
 
-    setUsers(usersData);
+      // Orders
+      const allOrders: Order[] = [];
+      usersData.forEach(u => {
+        if (u.orders && u.orders.length > 0) {
+          u.orders.forEach((o: any) => {
+            allOrders.push({ ...o, userId: u.id, userName: u.name });
+          });
+        }
+      });
+      allOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setOrders(allOrders);
 
-    const allOrders: Order[] = [];
-    usersData.forEach(u => {
-      if (u.orders && u.orders.length > 0) {
-        u.orders.forEach((o: any) => {
-          allOrders.push({ ...o, userId: u.id, userName: u.name });
-        });
-      }
-    });
+      // Products
+      const productsData = await getProducts();
+      setProducts(productsData);
 
-    allOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setOrders(allOrders);
+      // B2B
+      const inquiriesData = await getB2BInquiries();
+      setB2BInquiries(inquiriesData);
 
-    const productsData = await getProducts();
-    setProducts(productsData);
+      // Subscribers
+      const subscribersSnap = await getDocs(collection(db, 'newsletterSubscribers'));
+      const subscribersData = subscribersSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })) as Subscriber[];
+      setSubscribers(subscribersData);
 
-    const inquiriesData = await getB2BInquiries();
-    setB2BInquiries(inquiriesData);
+      // Invoices
+      const invoicesSnap = await getDocs(collection(db, 'invoices'));
+      const invoicesData = invoicesSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })) as Invoice[];
+      invoicesData.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
+        return dateB - dateA;
+      });
+      setInvoices(invoicesData);
 
-    const subscribersSnap = await getDocs(collection(db, 'newsletterSubscribers'));
-    const subscribersData = subscribersSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data(),
-    })) as Subscriber[];
-    setSubscribers(subscribersData);
+      // WhatsApp Clicks
+      const clicksQuery = query(collection(db, 'whatsappClicks'), orderBy('createdAt', 'desc'));
+      const clicksSnap = await getDocs(clicksQuery);
+      const clicksData = clicksSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })) as WhatsAppClick[];
+      setWhatsappClicks(clicksData);
 
-    const invoicesSnap = await getDocs(collection(db, 'invoices'));
-    const invoicesData = invoicesSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data(),
-    })) as Invoice[];
+    } catch (error) {
+      console.error('Admin fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    invoicesData.sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.date).getTime();
-      const dateB = new Date(b.createdAt || b.date).getTime();
-      return dateB - dateA;
-    });
-
-    setInvoices(invoicesData);
-  } catch (error) {
-    console.error('Admin fetch error:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  // Order functions
   const addItem = () => {
     setOrderItems([...orderItems, { name: '', volume: 50, qty: 1, price: 0 }]);
   };
@@ -305,7 +353,6 @@ export default function Admin() {
           ),
         };
       }
-
       return u;
     });
 
@@ -319,39 +366,39 @@ export default function Admin() {
       await updateDoc(doc(db, 'users', userId), { orders: targetUser.orders });
     }
   };
+
   const updatePaymentStatus = async (
-  userId: string,
-  orderId: string,
-  newPaymentStatus: Order["paymentStatus"]
-) => {
-  const updatedUsers = users.map(u => {
-    if (u.id === userId) {
-      return {
-        ...u,
-        orders: u.orders.map(o =>
-          o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
-        ),
-      };
+    userId: string,
+    orderId: string,
+    newPaymentStatus: Order["paymentStatus"]
+  ) => {
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          orders: u.orders.map(o =>
+            o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+          ),
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    setOrders(prev =>
+      prev.map(o =>
+        o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+      )
+    );
+
+    const userRef = doc(db, "users", userId);
+    const targetUser = updatedUsers.find(u => u.id === userId);
+    if (targetUser) {
+      await updateDoc(userRef, { orders: targetUser.orders });
     }
-    return u;
-  });
+  };
 
-  setUsers(updatedUsers);
-
-  setOrders(prev =>
-    prev.map(o =>
-      o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
-    )
-  );
-
-  const userRef = doc(db, "users", userId);
-  const targetUser = updatedUsers.find(u => u.id === userId);
-
-  if (targetUser) {
-    await updateDoc(userRef, { orders: targetUser.orders });
-  }
-};
-
+  // Product functions
   const updateProductStock = async (productId: string, stock: number) => {
     await updateProduct(productId, { stock });
     setProducts(prev =>
@@ -364,7 +411,6 @@ export default function Admin() {
     field: 'bestseller' | 'newArrival'
   ) => {
     const newValue = !product[field];
-
     await updateProduct(product.id, { [field]: newValue });
     setProducts(prev =>
       prev.map(p => (p.id === product.id ? { ...p, [field]: newValue } : p))
@@ -379,34 +425,32 @@ export default function Admin() {
   };
 
   const openEditProduct = (product: Product) => {
-  // Sort volumes to prioritize 30ml first
-  const sortedVolumes = [...(product.volumes || [])].sort((a, b) => {
-    // Define priority order: 30ml first, then 8ml, then 50ml, then 100ml
-    const priority: Record<number, number> = { 30: 0, 8: 1, 50: 2, 100: 3 };
-    return (priority[a.ml] ?? 99) - (priority[b.ml] ?? 99);
-  });
+    const sortedVolumes = [...(product.volumes || [])].sort((a, b) => {
+      const priority: Record<number, number> = { 30: 0, 8: 1, 50: 2, 100: 3 };
+      return (priority[a.ml] ?? 99) - (priority[b.ml] ?? 99);
+    });
 
-  setEditingProduct(product);
-  setProductId(product.id);
-  setProductForm({
-    name: product.name,
-    tagline: product.tagline || '',
-    description: product.description || '',
-    category: product.category || 'Luxury',
-    gender: product.gender || 'Unisex',
-    type: product.type || 'Liquid Perfume',
-    image: product.image || '',
-    images: product.images || [],
-    notes: product.notes || { top: [], middle: [], base: [] },
-    volumes: sortedVolumes,  // ← Use sorted volumes here
-    rating: product.rating || 4.5,
-    reviews: product.reviews || 0,
-    stock: product.stock || 0,
-    bestseller: product.bestseller || false,
-    newArrival: product.newArrival || false,
-  });
-  setShowProductModal(true);
-};
+    setEditingProduct(product);
+    setProductId(product.id);
+    setProductForm({
+      name: product.name,
+      tagline: product.tagline || '',
+      description: product.description || '',
+      category: product.category || 'Luxury',
+      gender: product.gender || 'Unisex',
+      type: product.type || 'Liquid Perfume',
+      image: product.image || '',
+      images: product.images || [],
+      notes: product.notes || { top: [], middle: [], base: [] },
+      volumes: sortedVolumes,
+      rating: product.rating || 4.5,
+      reviews: product.reviews || 0,
+      stock: product.stock || 0,
+      bestseller: product.bestseller || false,
+      newArrival: product.newArrival || false,
+    });
+    setShowProductModal(true);
+  };
 
   const handleSaveProduct = async () => {
     if (!productId.trim()) return alert('Product ID is required');
@@ -458,19 +502,18 @@ export default function Admin() {
   const handleDeleteProduct = async (productId: string) => {
     const ok = window.confirm('Delete this product permanently?');
     if (!ok) return;
-
     await deleteProduct(productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
   };
+
   const deleteSubscriber = async (id: string) => {
-  const ok = confirm("Delete this subscriber?");
-  if (!ok) return;
+    const ok = confirm("Delete this subscriber?");
+    if (!ok) return;
+    await deleteDoc(doc(db, "newsletterSubscribers", id));
+    setSubscribers(prev => prev.filter(sub => sub.id !== id));
+  };
 
-  await deleteDoc(doc(db, "newsletterSubscribers", id));
-
-  setSubscribers(prev => prev.filter(sub => sub.id !== id));
-};
-
+  // Invoice functions
   const updateInvoiceItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     setInvoiceForm(prev => ({
       ...prev,
@@ -504,6 +547,72 @@ export default function Admin() {
     0
   );
 
+  const invoiceBalanceDue = Math.max(
+    invoiceGrandTotal - Number(invoiceForm.advanceReceived || 0),
+    0
+  );
+
+  const determinePaymentStatus = (grandTotal: number, advanceReceived: number, balanceDue: number): 'unpaid' | 'partial' | 'paid' => {
+    if (balanceDue === 0 && advanceReceived > 0) return 'paid';
+    if (advanceReceived > 0 && balanceDue > 0) return 'partial';
+    return 'unpaid';
+  };
+
+  const saveInvoice = async () => {
+    if (!invoiceForm.invoiceNo.trim()) return alert('Invoice number is required');
+    if (!invoiceForm.buyerName.trim()) return alert('Buyer name is required');
+    if (invoiceForm.items.some(i => !i.productName.trim() || Number(i.qty) <= 0 || Number(i.price) <= 0)) {
+      return alert('Fill all product details correctly');
+    }
+    if (Number(invoiceForm.advanceReceived) > invoiceGrandTotal) {
+      alert('Advance received cannot exceed Grand Total');
+      return;
+    }
+
+    setSaving(true);
+
+    const subtotal = invoiceSubtotal;
+    const grandTotal = invoiceGrandTotal;
+    const advanceReceived = Number(invoiceForm.advanceReceived || 0);
+    const balanceDue = Math.max(grandTotal - advanceReceived, 0);
+    const paymentStatus = determinePaymentStatus(grandTotal, advanceReceived, balanceDue);
+
+    const invoiceData = {
+      invoiceNo: invoiceForm.invoiceNo.trim(),
+      buyerName: invoiceForm.buyerName.trim(),
+      buyerPhone: invoiceForm.buyerPhone.trim(),
+      buyerAddress: invoiceForm.buyerAddress.trim(),
+      date: invoiceForm.date,
+      items: invoiceForm.items.map(i => ({
+        productName: i.productName.trim(),
+        qty: Number(i.qty),
+        price: Number(i.price),
+      })),
+      subtotal: subtotal,
+      discount: Number(invoiceForm.discount || 0),
+      deliveryCharge: Number(invoiceForm.deliveryCharge || 0),
+      grandTotal: grandTotal,
+      advanceReceived: advanceReceived,
+      balanceDue: balanceDue,
+      paymentStatus: paymentStatus,
+      notes: invoiceForm.notes.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const ref = await addDoc(collection(db, 'invoices'), invoiceData);
+    const savedInvoice = { id: ref.id, ...invoiceData } as Invoice;
+
+    setInvoices(prev => [savedInvoice, ...prev]);
+    setInvoiceForm({
+      ...emptyInvoiceForm,
+      invoiceNo: createAutoInvoiceNo(),
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setSelectedInvoice(savedInvoice);
+    setSaving(false);
+  };
+
+  // Invoice HTML Builder
   const buildInvoiceHtml = (invoice: Invoice) => {
     const itemsRows = invoice.items
       .map(
@@ -517,6 +626,57 @@ export default function Admin() {
       )
       .join('');
 
+    let totalsHtml = `
+      <div style="display:flex; justify-content:space-between; padding:8px 0;">
+        <span>Subtotal</span>
+        <b>₹${invoice.subtotal.toFixed(2)}</b>
+      </div>
+    `;
+
+    if (invoice.discount > 0) {
+      totalsHtml += `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; color:#dc2626;">
+          <span>Discount</span>
+          <b>- ₹${invoice.discount.toFixed(2)}</b>
+        </div>
+      `;
+    }
+
+    if (invoice.deliveryCharge > 0) {
+      totalsHtml += `
+        <div style="display:flex; justify-content:space-between; padding:8px 0;">
+          <span>Delivery</span>
+          <b>₹${invoice.deliveryCharge.toFixed(2)}</b>
+        </div>
+      `;
+    }
+
+    totalsHtml += `
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-top:2px solid #111; margin-top:8px; padding-top:12px; font-size:20px; font-weight:800;">
+        <span>Grand Total</span>
+        <span>₹${invoice.grandTotal.toFixed(2)}</span>
+      </div>
+    `;
+
+    if (invoice.advanceReceived > 0) {
+      totalsHtml += `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; color:#2563eb;">
+          <span>Advance Paid</span>
+          <b>₹${invoice.advanceReceived.toFixed(2)}</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:18px; font-weight:700; border-top:1px solid #ddd; padding-top:12px;">
+          <span>Balance Due</span>
+          <span style="color:#dc2626;">₹${invoice.balanceDue.toFixed(2)}</span>
+        </div>
+      `;
+    }
+
+    const upiLink = `upi://pay?pa=aadarshlpnt16-2@oksbi&pn=Wildcore%20Fragrances&am=${invoice.balanceDue.toFixed(2)}&cu=INR`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiLink)}`;
+
+    const statusColor = invoice.paymentStatus === 'paid' ? '#166534' : invoice.paymentStatus === 'partial' ? '#92400e' : '#991b1b';
+    const statusBg = invoice.paymentStatus === 'paid' ? '#dcfce7' : invoice.paymentStatus === 'partial' ? '#fef3c7' : '#fee2e2';
+
     return `<!doctype html>
 <html>
 <head>
@@ -527,16 +687,37 @@ export default function Admin() {
     .invoice { max-width: 800px; margin: 0 auto; background: #fff; padding: 34px; border: 1px solid #ddd; }
     .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111; padding-bottom: 20px; }
     .brand { font-size: 28px; font-weight: 800; letter-spacing: 2px; }
+    .tagline { font-size: 12px; color: #9a7a2e; letter-spacing: 2px; margin-top: 2px; }
+    .company-contact { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.6; }
+    .company-contact span { margin-right: 16px; }
     .muted { color: #666; font-size: 13px; line-height: 1.6; }
     .gold { color: #9a7a2e; }
     .section { margin-top: 26px; }
     table { width: 100%; border-collapse: collapse; margin-top: 18px; }
     th { background: #111; color: #fff; padding: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
     td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-    .totals { width: 320px; margin-left: auto; margin-top: 18px; }
-    .totals div { display: flex; justify-content: space-between; padding: 8px 0; }
-    .grand { font-size: 20px; font-weight: 800; border-top: 2px solid #111; margin-top: 8px; padding-top: 12px !important; }
+    .totals { width: 380px; margin-left: auto; margin-top: 18px; }
     .footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid #eee; text-align: center; }
+    .payment-section { 
+      margin-top: 20px; 
+      padding-top: 16px; 
+      border-top: 1px solid #ddd;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .qr-container { text-align: center; }
+    .qr-container img { border: 1px solid #ddd; border-radius: 6px; padding: 6px; background: white; width: 80px; height: 80px; }
+    .qr-container .qr-label { font-size: 11px; font-weight: 600; color: #333; display: block; margin-bottom: 4px; }
+    .upi-details { text-align: left; }
+    .upi-details .upi-id { font-size: 14px; font-weight: 700; color: #2563eb; background: #f0f7ff; padding: 4px 12px; border-radius: 4px; display: inline-block; }
+    .upi-details .upi-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+    .payment-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; background: ${statusBg}; color: ${statusColor}; }
+    .notes-box { margin-top: 16px; padding: 12px 16px; background: #f9fafb; border-left: 3px solid #9a7a2e; border-radius: 4px; }
+    .notes-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+    .notes-box .text { font-size: 13px; color: #444; margin-top: 2px; }
     @media print { body { background: #fff; padding: 0; } .invoice { border: 0; } }
   </style>
 </head>
@@ -545,13 +726,18 @@ export default function Admin() {
     <div class="top">
       <div>
         <div class="brand">WILDCORE</div>
-        <div class="muted">FRAGRANCES<br/>Wear The Wild</div>
+        <div class="tagline">FRAGRANCES · Wear The Wild</div>
+        <div class="company-contact">
+          <span>📧 wildcorefragrances@gmail.com</span>
+          <span>📞 +91 7056713252</span>
+          <span>📍 Panipat, Haryana</span>
+        </div>
       </div>
       <div style="text-align:right;">
         <h2 style="margin:0;">INVOICE</h2>
         <div class="muted">Invoice No: <b>${invoice.invoiceNo}</b></div>
         <div class="muted">Date: ${new Date(invoice.date).toLocaleDateString('en-IN')}</div>
-        <div class="muted">Payment: <b class="gold">${invoice.paymentStatus.toUpperCase()}</b></div>
+        <div class="muted" style="margin-top:4px;">Payment: <span class="payment-badge">${invoice.paymentStatus.toUpperCase()}</span></div>
       </div>
     </div>
 
@@ -574,18 +760,31 @@ export default function Admin() {
       <tbody>${itemsRows}</tbody>
     </table>
 
-    <div class="totals">
-      <div><span>Subtotal</span><b>₹${invoice.subtotal.toFixed(2)}</b></div>
-      <div><span>Delivery</span><b>₹${invoice.deliveryCharge.toFixed(2)}</b></div>
-      <div><span>Discount</span><b>- ₹${invoice.discount.toFixed(2)}</b></div>
-      <div class="grand"><span>Grand Total</span><span>₹${invoice.grandTotal.toFixed(2)}</span></div>
-    </div>
+    <div class="totals">${totalsHtml}</div>
 
-    ${invoice.notes ? `<div class="section"><b>Notes:</b><div class="muted">${invoice.notes}</div></div>` : ''}
+    ${invoice.notes ? `
+      <div class="notes-box">
+        <div class="label">📝 Notes</div>
+        <div class="text">${invoice.notes}</div>
+      </div>
+    ` : ''}
+
+    <div class="payment-section">
+      <div class="qr-container">
+        <span class="qr-label">Scan to Pay</span>
+        <img src="${qrCodeUrl}" alt="UPI QR" />
+        <div style="font-size:10px; color:#666; margin-top:2px;">₹${invoice.balanceDue.toFixed(2)}</div>
+      </div>
+      <div class="upi-details">
+        <div class="upi-label">UPI ID</div>
+        <div class="upi-id">aadarshlpnt16-2@oksbi</div>
+        <div style="font-size:11px; color:#666; margin-top:4px;">Pay using GPay, PhonePe, Paytm</div>
+      </div>
+    </div>
 
     <div class="footer">
       <b>Thank you for choosing Wildcore Fragrances.</b>
-      <div class="muted">Drive Your Instinct • Wear The Wild</div>
+      <div class="muted">Drive Your Instinct · Wear The Wild</div>
     </div>
   </div>
 </body>
@@ -615,57 +814,27 @@ export default function Admin() {
     setTimeout(() => win.print(), 500);
   };
 
-  const saveInvoice = async () => {
-    if (!invoiceForm.invoiceNo.trim()) return alert('Invoice number is required');
-    if (!invoiceForm.buyerName.trim()) return alert('Buyer name is required');
-    if (invoiceForm.items.some(i => !i.productName.trim() || Number(i.qty) <= 0 || Number(i.price) <= 0)) {
-      return alert('Fill all product details correctly');
-    }
-
-    setSaving(true);
-
-    const invoiceData = {
-      invoiceNo: invoiceForm.invoiceNo.trim(),
-      buyerName: invoiceForm.buyerName.trim(),
-      buyerPhone: invoiceForm.buyerPhone.trim(),
-      buyerAddress: invoiceForm.buyerAddress.trim(),
-      date: invoiceForm.date,
-      items: invoiceForm.items.map(i => ({
-        productName: i.productName.trim(),
-        qty: Number(i.qty),
-        price: Number(i.price),
-      })),
-      subtotal: invoiceSubtotal,
-      discount: Number(invoiceForm.discount || 0),
-      deliveryCharge: Number(invoiceForm.deliveryCharge || 0),
-      grandTotal: invoiceGrandTotal,
-      paymentStatus: invoiceForm.paymentStatus,
-      notes: invoiceForm.notes.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const ref = await addDoc(collection(db, 'invoices'), invoiceData);
-    const savedInvoice = { id: ref.id, ...invoiceData } as Invoice;
-
-    setInvoices(prev => [savedInvoice, ...prev]);
-    setInvoiceForm({
-      ...emptyInvoiceForm,
-      invoiceNo: createAutoInvoiceNo(),
-      date: new Date().toISOString().slice(0, 10),
-    });
-    setSelectedInvoice(savedInvoice);
-    setSaving(false);
-  };
-
   const deleteInvoice = async (invoiceId: string) => {
     const ok = confirm('Delete this invoice from history?');
     if (!ok) return;
-
     await deleteDoc(doc(db, 'invoices', invoiceId));
     setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
     if (selectedInvoice?.id === invoiceId) setSelectedInvoice(null);
   };
 
+  // WhatsApp Click functions
+  const updateWhatsAppStatus = async (id: string, status: WhatsAppClick['status'], notes?: string) => {
+    await updateDoc(doc(db, 'whatsappClicks', id), {
+      status,
+      notes: notes || '',
+      updatedAt: new Date().toISOString(),
+    });
+    setWhatsappClicks(prev =>
+      prev.map(w => w.id === id ? { ...w, status, notes: notes || w.notes } : w)
+    );
+  };
+
+  // Stats
   const statusColors = {
     delivered: 'text-green-400 bg-green-400/10',
     shipped: 'text-blue-400 bg-blue-400/10',
@@ -673,15 +842,16 @@ export default function Admin() {
   };
 
   const totalRevenue = orders
-  .filter(order => order.paymentStatus === 'paid')
-  .reduce((sum, order) => sum + (order.total || 0), 0);
+    .filter(order => order.paymentStatus === 'paid')
+    .reduce((sum, order) => sum + (order.total || 0), 0);
 
-const pendingAmount = orders
-  .filter(order => order.paymentStatus === 'unpaid')
-  .reduce((sum, order) => sum + (order.total || 0), 0);
+  const pendingAmount = orders
+    .filter(order => order.paymentStatus === 'unpaid')
+    .reduce((sum, order) => sum + (order.total || 0), 0);
 
   const lowStockProducts = products.filter(p => p.stock <= 5).length;
 
+  // Auth checks
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -701,12 +871,12 @@ const pendingAmount = orders
   return (
     <div className="min-h-screen bg-[var(--bg)] pt-24 pb-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
             <p className="text-xs tracking-[0.4em] text-gold uppercase mb-2">Admin Panel</p>
             <h1 className="font-serif text-4xl font-bold text-[var(--text)]">Dashboard</h1>
           </div>
-
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowOrderModal(true)}
@@ -714,7 +884,6 @@ const pendingAmount = orders
             >
               <Plus size={15} /> New Order
             </button>
-
             <button
               onClick={() => {
                 logout();
@@ -727,42 +896,41 @@ const pendingAmount = orders
           </div>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Users</p>
             <p className="font-serif text-3xl font-bold text-gold">{users.length}</p>
           </div>
-
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Orders</p>
             <p className="font-serif text-3xl font-bold text-gold">{orders.length}</p>
           </div>
-
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Revenue</p>
             <p className="font-serif text-3xl font-bold text-gold">₹{totalRevenue}</p>
           </div>
-
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Pending</p>
-            <p className="font-serif text-3xl font-bold text-gold">{pendingAmount}</p>
+            <p className="font-serif text-3xl font-bold text-gold">₹{pendingAmount}</p>
           </div>
-
           <div className="glass rounded-2xl p-5">
             <p className="text-xs tracking-widest text-[var(--text-muted)] uppercase mb-2">Low Stock</p>
             <p className="font-serif text-3xl font-bold text-gold">{lowStockProducts}</p>
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="flex glass rounded-xl p-1 mb-8 w-fit flex-wrap">
-{([
-  { key: 'orders', label: 'Orders', icon: Package },
-  { key: 'users', label: 'Users', icon: Users },
-  { key: 'products', label: 'Products', icon: Boxes },
-  { key: 'b2b', label: 'B2B', icon: Briefcase },
-  { key: 'subscribers', label: 'Subscribers', icon: Mail },
-  { key: 'invoices', label: 'Invoices', icon: FileText },
-] as const).map(({ key, label, icon: Icon }) => (
+          {([
+            { key: 'orders', label: 'Orders', icon: Package },
+            { key: 'users', label: 'Users', icon: Users },
+            { key: 'products', label: 'Products', icon: Boxes },
+            { key: 'b2b', label: 'B2B', icon: Briefcase },
+            { key: 'subscribers', label: 'Subscribers', icon: Mail },
+            { key: 'invoices', label: 'Invoices', icon: FileText },
+            { key: 'whatsapp', label: 'WhatsApp Leads', icon: Send },
+          ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
@@ -781,6 +949,7 @@ const pendingAmount = orders
           <p className="text-[var(--text-muted)] text-center py-20">Loading...</p>
         ) : (
           <>
+            {/* ORDERS TAB */}
             {tab === 'orders' && (
               <div className="space-y-4">
                 {orders.length === 0 ? (
@@ -810,7 +979,6 @@ const pendingAmount = orders
                             <p className="text-xs text-gold mt-1">Note: {order.note}</p>
                           )}
                         </div>
-
                         <div className="flex flex-col items-end gap-2">
                           <select
                             value={order.status}
@@ -827,28 +995,26 @@ const pendingAmount = orders
                             <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
                           </select>
-
-           <select
-  value={order.paymentStatus}
-  onChange={(e) =>
-    updatePaymentStatus(
-      order.userId,
-      order.id,
-      e.target.value as Order["paymentStatus"]
-    )
-  }
-  className={`text-xs px-3 py-1 rounded-full border outline-none ${
-    order.paymentStatus === "paid"
-      ? "text-green-400 bg-green-400/10 border-green-400/20"
-      : "text-red-400 bg-red-400/10 border-red-400/20"
-  }`}
->
-  <option value="unpaid">unpaid</option>
-  <option value="paid">paid</option>
-</select>
+                          <select
+                            value={order.paymentStatus}
+                            onChange={(e) =>
+                              updatePaymentStatus(
+                                order.userId,
+                                order.id,
+                                e.target.value as Order["paymentStatus"]
+                              )
+                            }
+                            className={`text-xs px-3 py-1 rounded-full border outline-none ${
+                              order.paymentStatus === "paid"
+                                ? "text-green-400 bg-green-400/10 border-green-400/20"
+                                : "text-red-400 bg-red-400/10 border-red-400/20"
+                            }`}
+                          >
+                            <option value="unpaid">unpaid</option>
+                            <option value="paid">paid</option>
+                          </select>
                         </div>
                       </div>
-
                       <div className="space-y-2 border-t border-[var(--border)] pt-4">
                         {order.items.map((item, i) => (
                           <div key={i} className="flex justify-between text-sm">
@@ -860,7 +1026,6 @@ const pendingAmount = orders
                             </span>
                           </div>
                         ))}
-
                         <div className="flex justify-between font-semibold text-sm pt-2 border-t border-[var(--border)]">
                           <span>Total</span>
                           <span className="text-gold">₹{order.total.toFixed(2)}</span>
@@ -871,7 +1036,8 @@ const pendingAmount = orders
                 )}
               </div>
             )}
-            
+
+            {/* USERS TAB */}
             {tab === 'users' && (
               <div className="space-y-4">
                 {users.map(u => (
@@ -880,7 +1046,6 @@ const pendingAmount = orders
                       <div>
                         <p className="font-medium text-[var(--text)]">{u.name}</p>
                         <p className="text-sm text-[var(--text-muted)]">{u.email}</p>
-
                         {u.phone ? (
                           <a
                             href={`https://wa.me/91${u.phone}`}
@@ -893,12 +1058,10 @@ const pendingAmount = orders
                         ) : (
                           <p className="text-xs text-[var(--text-muted)] mt-1 italic">No phone set</p>
                         )}
-
                         <p className="text-xs text-[var(--text-muted)] mt-1">
                           {u.address || 'No address set'}
                         </p>
                       </div>
-
                       <div className="text-right">
                         <span
                           className={`text-xs px-3 py-1 rounded-full font-medium ${
@@ -909,11 +1072,9 @@ const pendingAmount = orders
                         >
                           {u.role}
                         </span>
-
                         <p className="text-xs text-[var(--text-muted)] mt-2">
                           {u.orders?.length || 0} orders
                         </p>
-
                         {u.phone && (
                           <a
                             href={`https://wa.me/91${u.phone}?text=Hi ${u.name}! Your Wildcore order is confirmed`}
@@ -931,6 +1092,7 @@ const pendingAmount = orders
               </div>
             )}
 
+            {/* PRODUCTS TAB */}
             {tab === 'products' && (
               <div className="space-y-4">
                 <div className="flex justify-end">
@@ -941,7 +1103,6 @@ const pendingAmount = orders
                     <Plus size={15} /> Add Product
                   </button>
                 </div>
-
                 {products.length === 0 ? (
                   <div className="text-center py-20">
                     <Boxes size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
@@ -958,23 +1119,17 @@ const pendingAmount = orders
                           decoding="async"
                           className="w-24 h-24 rounded-xl object-cover bg-[var(--bg3)]"
                         />
-
                         <div className="flex-1">
                           <p className="font-serif text-xl font-bold text-[var(--text)]">
                             {product.name}
                           </p>
-
-                          <p className="text-xs text-[var(--text-muted)] mt-1">
-                            ID: {product.id}
-                          </p>
-
+                          <p className="text-xs text-[var(--text-muted)] mt-1">ID: {product.id}</p>
                           <p className="text-sm text-[var(--text-muted)] mt-1">
                             {product.category} • {product.gender} • {product.type}
                           </p>
-<p className="text-sm text-gold mt-2">
-  From ₹{product.volumes?.find(v => v.ml === 30)?.price || product.volumes?.[0]?.price || 0}
-</p>
-
+                          <p className="text-sm text-gold mt-2">
+                            From ₹{product.volumes?.find(v => v.ml === 30)?.price || product.volumes?.[0]?.price || 0}
+                          </p>
                           <div className="flex flex-wrap gap-2 mt-3">
                             <button
                               onClick={() => toggleProductField(product, 'bestseller')}
@@ -986,7 +1141,6 @@ const pendingAmount = orders
                             >
                               Bestseller
                             </button>
-
                             <button
                               onClick={() => toggleProductField(product, 'newArrival')}
                               className={`text-xs px-3 py-1 rounded-full ${
@@ -999,12 +1153,10 @@ const pendingAmount = orders
                             </button>
                           </div>
                         </div>
-
                         <div className="flex flex-col gap-3 md:w-40">
                           <label className="text-xs text-[var(--text-muted)] uppercase tracking-widest">
                             Stock
                           </label>
-
                           <input
                             type="number"
                             value={product.stock}
@@ -1013,21 +1165,17 @@ const pendingAmount = orders
                             }
                             className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-gold"
                           />
-
                           <button
                             onClick={() => openEditProduct(product)}
                             className="flex items-center justify-center gap-2 text-sm bg-gold/10 text-gold px-4 py-2 rounded-xl hover:bg-gold/20 transition-all"
                           >
-                            <Edit size={14} />
-                            Edit
+                            <Edit size={14} /> Edit
                           </button>
-
                           <button
                             onClick={() => handleDeleteProduct(product.id)}
                             className="flex items-center justify-center gap-2 text-sm bg-red-500/10 text-red-400 px-4 py-2 rounded-xl hover:bg-red-500/20 transition-all"
                           >
-                            <Trash2 size={14} />
-                            Delete
+                            <Trash2 size={14} /> Delete
                           </button>
                         </div>
                       </div>
@@ -1036,380 +1184,545 @@ const pendingAmount = orders
                 )}
               </div>
             )}
+
+            {/* B2B TAB */}
             {tab === 'b2b' && (
-  <div className="space-y-4">
-    {b2bInquiries.length === 0 ? (
-      <div className="text-center py-20">
-        <Briefcase size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
-        <p className="text-[var(--text-muted)] italic">
-          No B2B inquiries yet.
-        </p>
-      </div>
-    ) : (
-      b2bInquiries.map(inquiry => (
-        <div key={inquiry.id} className="glass rounded-2xl p-6">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
-            <div>
-              <p className="font-serif text-2xl font-bold text-[var(--text)]">
-                {inquiry.businessName}
-              </p>
-
-              <p className="text-sm text-gold mt-1">
-                {inquiry.businessType}
-              </p>
-
-              <div className="space-y-1 mt-4 text-sm text-[var(--text-muted)]">
-                <p>Phone: {inquiry.phone}</p>
-                <p>City: {inquiry.city}</p>
-                <p>Quantity: {inquiry.quantity}</p>
-                <p>Brand Name: {inquiry.brandName}</p>
-              </div>
-
-              {inquiry.message && (
-                <p className="text-sm text-[var(--text-muted)] mt-4">
-                  {inquiry.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3 min-w-[180px]">
-              <select
-                value={inquiry.status}
-                onChange={async e => {
-                  const status = e.target.value as 'new' | 'contacted' | 'closed';
-
-                  await updateB2BInquiryStatus(inquiry.id, status);
-
-                  setB2BInquiries(prev =>
-                    prev.map(i =>
-                      i.id === inquiry.id ? { ...i, status } : i
-                    )
-                  );
-                }}
-                className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-              >
-                <option value="new">New</option>
-                <option value="contacted">Contacted</option>
-                <option value="closed">Closed</option>
-              </select>
-
-              <a
-                href={`https://wa.me/91${inquiry.phone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-500 text-white text-center font-medium px-4 py-3 rounded-xl hover:bg-green-600 transition-all"
-              >
-                WhatsApp
-              </a>
-            </div>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-)}
-{tab === 'invoices' && (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div className="glass rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Bill Generator</p>
-          <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Create Invoice</h2>
-        </div>
-        <FileText size={28} className="text-gold" />
-      </div>
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input
-            value={invoiceForm.invoiceNo}
-            onChange={e => setInvoiceForm(prev => ({ ...prev, invoiceNo: e.target.value }))}
-            placeholder="Invoice No"
-            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-          />
-          <input
-            type="date"
-            value={invoiceForm.date}
-            onChange={e => setInvoiceForm(prev => ({ ...prev, date: e.target.value }))}
-            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-          />
-        </div>
-
-        <input
-          value={invoiceForm.buyerName}
-          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerName: e.target.value }))}
-          placeholder="Buyer name"
-          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-        />
-
-        <input
-          value={invoiceForm.buyerPhone}
-          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
-          placeholder="Phone number"
-          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-        />
-
-        <textarea
-          value={invoiceForm.buyerAddress}
-          onChange={e => setInvoiceForm(prev => ({ ...prev, buyerAddress: e.target.value }))}
-          placeholder="Buyer address"
-          rows={2}
-          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-        />
-
-        <div className="space-y-3">
-          <p className="text-xs tracking-widest uppercase text-[var(--text-muted)]">Products</p>
-          {invoiceForm.items.map((item, index) => (
-            <div key={index} className="glass rounded-xl p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input
-                value={item.productName}
-                onChange={e => updateInvoiceItem(index, 'productName', e.target.value)}
-                placeholder="Product name"
-                className="md:col-span-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
-              />
-              <input
-                type="number"
-                value={item.qty}
-                onChange={e => updateInvoiceItem(index, 'qty', Number(e.target.value))}
-                placeholder="Qty"
-                className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={item.price}
-                  onChange={e => updateInvoiceItem(index, 'price', Number(e.target.value))}
-                  placeholder="Price"
-                  className="flex-1 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
-                />
-                {invoiceForm.items.length > 1 && (
-                  <button
-                    onClick={() => removeInvoiceItem(index)}
-                    className="px-3 rounded-xl bg-red-500/10 text-red-400"
-                  >
-                    <X size={15} />
-                  </button>
+              <div className="space-y-4">
+                {b2bInquiries.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Briefcase size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
+                    <p className="text-[var(--text-muted)] italic">No B2B inquiries yet.</p>
+                  </div>
+                ) : (
+                  b2bInquiries.map(inquiry => (
+                    <div key={inquiry.id} className="glass rounded-2xl p-6">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                        <div>
+                          <p className="font-serif text-2xl font-bold text-[var(--text)]">
+                            {inquiry.businessName}
+                          </p>
+                          <p className="text-sm text-gold mt-1">{inquiry.businessType}</p>
+                          <div className="space-y-1 mt-4 text-sm text-[var(--text-muted)]">
+                            <p>Phone: {inquiry.phone}</p>
+                            <p>City: {inquiry.city}</p>
+                            <p>Quantity: {inquiry.quantity}</p>
+                            <p>Brand Name: {inquiry.brandName}</p>
+                          </div>
+                          {inquiry.message && (
+                            <p className="text-sm text-[var(--text-muted)] mt-4">{inquiry.message}</p>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-3 min-w-[180px]">
+                          <select
+                            value={inquiry.status}
+                            onChange={async e => {
+                              const status = e.target.value as 'new' | 'contacted' | 'closed';
+                              await updateB2BInquiryStatus(inquiry.id, status);
+                              setB2BInquiries(prev =>
+                                prev.map(i =>
+                                  i.id === inquiry.id ? { ...i, status } : i
+                                )
+                              );
+                            }}
+                            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                          >
+                            <option value="new">New</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="closed">Closed</option>
+                          </select>
+                          <a
+                            href={`https://wa.me/91${inquiry.phone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-green-500 text-white text-center font-medium px-4 py-3 rounded-xl hover:bg-green-600 transition-all"
+                          >
+                            WhatsApp
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
-            </div>
-          ))}
+            )}
 
-          <button
-            onClick={addInvoiceItem}
-            className="text-sm text-gold hover:text-gold-light transition-colors"
-          >
-            + Add product
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            type="number"
-            value={invoiceForm.deliveryCharge}
-            onChange={e => setInvoiceForm(prev => ({ ...prev, deliveryCharge: Number(e.target.value) }))}
-            placeholder="Delivery"
-            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-          />
-          <input
-            type="number"
-            value={invoiceForm.discount}
-            onChange={e => setInvoiceForm(prev => ({ ...prev, discount: Number(e.target.value) }))}
-            placeholder="Discount"
-            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-          />
-          <select
-            value={invoiceForm.paymentStatus}
-            onChange={e => setInvoiceForm(prev => ({ ...prev, paymentStatus: e.target.value as 'paid' | 'unpaid' }))}
-            className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-          >
-            <option value="unpaid">Unpaid</option>
-            <option value="paid">Paid</option>
-          </select>
-        </div>
-
-        <textarea
-          value={invoiceForm.notes}
-          onChange={e => setInvoiceForm(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Notes / delivery details"
-          rows={2}
-          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
-        />
-
-        <div className="glass rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between text-[var(--text-muted)]"><span>Subtotal</span><span>₹{invoiceSubtotal.toFixed(2)}</span></div>
-          <div className="flex justify-between text-[var(--text-muted)]"><span>Delivery</span><span>₹{Number(invoiceForm.deliveryCharge || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between text-[var(--text-muted)]"><span>Discount</span><span>- ₹{Number(invoiceForm.discount || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between text-lg font-bold border-t border-[var(--border)] pt-2"><span>Grand Total</span><span className="text-gold">₹{invoiceGrandTotal.toFixed(2)}</span></div>
-        </div>
-
-        <button
-          onClick={saveInvoice}
-          disabled={saving}
-          className="w-full bg-gold text-black font-semibold py-4 rounded-xl hover:bg-gold-light transition-all disabled:opacity-60"
-        >
-          {saving ? 'Saving...' : 'Save Invoice'}
-        </button>
-      </div>
-    </div>
-
-    <div className="space-y-4">
-      <div className="glass rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">History</p>
-            <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Invoices</h2>
-          </div>
-          <p className="text-sm text-[var(--text-muted)]">{invoices.length} saved</p>
-        </div>
-
-        {invoices.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)] italic text-center py-10">No invoices generated yet.</p>
-        ) : (
-          <div className="space-y-3 max-h-[720px] overflow-y-auto pr-1">
-            {invoices.map(invoice => (
-              <div key={invoice.id} className="glass rounded-xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--text)]">{invoice.invoiceNo}</p>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">{invoice.buyerName} • {new Date(invoice.date).toLocaleDateString('en-IN')}</p>
-                    <p className="text-sm text-gold font-semibold mt-1">₹{invoice.grandTotal.toFixed(2)}</p>
+            {/* INVOICES TAB */}
+            {tab === 'invoices' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* LEFT - Create Invoice */}
+                <div className="glass rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Bill Generator</p>
+                      <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Create Invoice</h2>
+                    </div>
+                    <FileText size={28} className="text-gold" />
                   </div>
-                  <span className={`text-[10px] px-2 py-1 rounded-full uppercase ${invoice.paymentStatus === 'paid' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}`}>
-                    {invoice.paymentStatus}
-                  </span>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        value={invoiceForm.invoiceNo}
+                        onChange={e => setInvoiceForm(prev => ({ ...prev, invoiceNo: e.target.value }))}
+                        placeholder="Invoice No"
+                        className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                      />
+                      <input
+                        type="date"
+                        value={invoiceForm.date}
+                        onChange={e => setInvoiceForm(prev => ({ ...prev, date: e.target.value }))}
+                        className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                      />
+                    </div>
+
+                    <input
+                      value={invoiceForm.buyerName}
+                      onChange={e => setInvoiceForm(prev => ({ ...prev, buyerName: e.target.value }))}
+                      placeholder="Buyer name"
+                      className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                    />
+                    <input
+                      value={invoiceForm.buyerPhone}
+                      onChange={e => setInvoiceForm(prev => ({ ...prev, buyerPhone: e.target.value }))}
+                      placeholder="Phone number"
+                      className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                    />
+                    <textarea
+                      value={invoiceForm.buyerAddress}
+                      onChange={e => setInvoiceForm(prev => ({ ...prev, buyerAddress: e.target.value }))}
+                      placeholder="Buyer address"
+                      rows={2}
+                      className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                    />
+
+                    {/* Products */}
+                    <div className="space-y-3">
+                      <p className="text-xs tracking-widest uppercase text-[var(--text-muted)]">Products</p>
+                      <div className="grid grid-cols-12 gap-2 px-1 text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider border-b border-[var(--border)] pb-2">
+                        <div className="col-span-5">Product Name</div>
+                        <div className="col-span-2 text-center">Qty</div>
+                        <div className="col-span-3 text-center">Price (₹)</div>
+                        <div className="col-span-2 text-center">Action</div>
+                      </div>
+                      {invoiceForm.items.map((item, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-center bg-[var(--bg3)] rounded-xl p-2">
+                          <input
+                            value={item.productName}
+                            onChange={e => updateInvoiceItem(index, 'productName', e.target.value)}
+                            placeholder="e.g. Fresh Eros 100ml"
+                            className="col-span-5 bg-transparent border-0 px-2 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-gold rounded"
+                          />
+                          <input
+                            type="number"
+                            value={item.qty}
+                            onChange={e => updateInvoiceItem(index, 'qty', Number(e.target.value))}
+                            placeholder="1"
+                            className="col-span-2 bg-transparent border-0 px-2 py-2 text-sm text-[var(--text)] text-center focus:outline-none focus:ring-1 focus:ring-gold rounded"
+                          />
+                          <input
+                            type="number"
+                            value={item.price}
+                            onChange={e => updateInvoiceItem(index, 'price', Number(e.target.value))}
+                            placeholder="0.00"
+                            className="col-span-3 bg-transparent border-0 px-2 py-2 text-sm text-[var(--text)] text-center focus:outline-none focus:ring-1 focus:ring-gold rounded"
+                          />
+                          <div className="col-span-2 flex justify-center">
+                            {invoiceForm.items.length > 1 ? (
+                              <button
+                                onClick={() => removeInvoiceItem(index)}
+                                className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-xs flex items-center gap-1"
+                              >
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            ) : (
+                              <span className="text-xs text-[var(--text-muted)] opacity-30">-</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={addInvoiceItem}
+                        className="text-sm text-gold hover:text-gold-light transition-colors flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Add product
+                      </button>
+                    </div>
+
+                    {/* Discount, Delivery, Advance */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs text-[var(--text-muted)] block mb-1">💳 Discount (₹)</label>
+                        <input
+                          type="number"
+                          value={invoiceForm.discount}
+                          onChange={e => setInvoiceForm(prev => ({ ...prev, discount: Number(e.target.value) }))}
+                          placeholder="0"
+                          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-[var(--text-muted)] block mb-1">📦 Delivery (₹)</label>
+                        <input
+                          type="number"
+                          value={invoiceForm.deliveryCharge}
+                          onChange={e => setInvoiceForm(prev => ({ ...prev, deliveryCharge: Number(e.target.value) }))}
+                          placeholder="0"
+                          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-[var(--text-muted)] block mb-1">💰 Advance (₹)</label>
+                        <input
+                          type="number"
+                          value={invoiceForm.advanceReceived}
+                          onChange={e => setInvoiceForm(prev => ({ ...prev, advanceReceived: Number(e.target.value) }))}
+                          placeholder="0"
+                          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                        />
+                      </div>
+                    </div>
+
+                    <textarea
+                      value={invoiceForm.notes}
+                      onChange={e => setInvoiceForm(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Notes / delivery details"
+                      rows={2}
+                      className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
+                    />
+
+                    {/* Totals */}
+                    <div className="glass rounded-xl p-4 space-y-2 text-sm">
+                      <div className="flex justify-between text-[var(--text-muted)]">
+                        <span>Subtotal</span>
+                        <span>₹{invoiceSubtotal.toFixed(2)}</span>
+                      </div>
+                      {invoiceForm.discount > 0 && (
+                        <div className="flex justify-between text-red-400">
+                          <span>Discount</span>
+                          <span>- ₹{Number(invoiceForm.discount).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {invoiceForm.deliveryCharge > 0 && (
+                        <div className="flex justify-between text-[var(--text-muted)]">
+                          <span>Delivery</span>
+                          <span>₹{Number(invoiceForm.deliveryCharge).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-lg font-bold border-t border-[var(--border)] pt-2">
+                        <span>Grand Total</span>
+                        <span className="text-gold">₹{invoiceGrandTotal.toFixed(2)}</span>
+                      </div>
+                      {invoiceForm.advanceReceived > 0 && (
+                        <>
+                          <div className="flex justify-between text-blue-400">
+                            <span>Advance Paid</span>
+                            <span>₹{Number(invoiceForm.advanceReceived).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-lg font-bold border-t border-[var(--border)] pt-2">
+                            <span>Balance Due</span>
+                            <span className="text-red-400">₹{invoiceBalanceDue.toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={saveInvoice}
+                      disabled={saving}
+                      className="w-full bg-gold text-black font-semibold py-4 rounded-xl hover:bg-gold-light transition-all disabled:opacity-60"
+                    >
+                      {saving ? 'Saving...' : 'Save Invoice'}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <button
-                    onClick={() => setSelectedInvoice(invoice)}
-                    className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
-                  >
-                    <Eye size={13} /> View
-                  </button>
-                  <button
-                    onClick={() => printInvoice(invoice)}
-                    className="flex items-center gap-1 text-xs bg-gold/10 text-gold px-3 py-2 rounded-lg hover:bg-gold/20 transition-all"
-                  >
-                    <Download size={13} /> Print / PDF
-                  </button>
-                  <button
-                    onClick={() => downloadInvoice(invoice)}
-                    className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text-muted)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
-                  >
-                    HTML
-                  </button>
-                  <button
-                    onClick={() => deleteInvoice(invoice.id)}
-                    className="flex items-center gap-1 text-xs bg-red-500/10 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/20 transition-all"
-                  >
-                    <Trash2 size={13} /> Delete
-                  </button>
+                {/* RIGHT - Invoice History */}
+                <div className="space-y-4">
+                  <div className="glass rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <div>
+                        <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">History</p>
+                        <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Invoices</h2>
+                      </div>
+                      <p className="text-sm text-[var(--text-muted)]">{invoices.length} saved</p>
+                    </div>
+
+                    {invoices.length === 0 ? (
+                      <p className="text-sm text-[var(--text-muted)] italic text-center py-10">No invoices generated yet.</p>
+                    ) : (
+                      <div className="space-y-3 max-h-[720px] overflow-y-auto pr-1">
+                        {invoices.map(invoice => (
+                          <div key={invoice.id} className="glass rounded-xl p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-[var(--text)]">{invoice.invoiceNo}</p>
+                                <p className="text-xs text-[var(--text-muted)] mt-1">{invoice.buyerName} • {new Date(invoice.date).toLocaleDateString('en-IN')}</p>
+                                <p className="text-sm text-gold font-semibold mt-1">₹{invoice.grandTotal.toFixed(2)}</p>
+                                {invoice.advanceReceived > 0 && (
+                                  <p className="text-xs text-blue-400 mt-0.5">Advance: ₹{invoice.advanceReceived.toFixed(2)} • Balance: ₹{invoice.balanceDue.toFixed(2)}</p>
+                                )}
+                              </div>
+                              <span className={`text-[10px] px-2 py-1 rounded-full uppercase ${
+                                invoice.paymentStatus === 'paid' ? 'bg-green-400/10 text-green-400' :
+                                invoice.paymentStatus === 'partial' ? 'bg-yellow-400/10 text-yellow-400' :
+                                'bg-red-400/10 text-red-400'
+                              }`}>
+                                {invoice.paymentStatus}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              <button
+                                onClick={() => setSelectedInvoice(invoice)}
+                                className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
+                              >
+                                <Eye size={13} /> View
+                              </button>
+                              <button
+                                onClick={() => printInvoice(invoice)}
+                                className="flex items-center gap-1 text-xs bg-gold/10 text-gold px-3 py-2 rounded-lg hover:bg-gold/20 transition-all"
+                              >
+                                <Download size={13} /> Print / PDF
+                              </button>
+                              <button
+                                onClick={() => downloadInvoice(invoice)}
+                                className="flex items-center gap-1 text-xs bg-white/10 text-[var(--text-muted)] px-3 py-2 rounded-lg hover:bg-white/15 transition-all"
+                              >
+                                HTML
+                              </button>
+                              <button
+                                onClick={() => deleteInvoice(invoice.id)}
+                                className="flex items-center gap-1 text-xs bg-red-500/10 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/20 transition-all"
+                              >
+                                <Trash2 size={13} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedInvoice && (
+                    <div className="glass rounded-2xl p-6">
+                      <div className="flex items-start justify-between gap-4 mb-5">
+                        <div>
+                          <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Preview</p>
+                          <h3 className="font-serif text-xl font-bold text-[var(--text)]">{selectedInvoice.invoiceNo}</h3>
+                          <p className="text-xs text-[var(--text-muted)] mt-1">{selectedInvoice.buyerName}</p>
+                        </div>
+                        <button onClick={() => setSelectedInvoice(null)} className="text-[var(--text-muted)] hover:text-red-400"><X size={18} /></button>
+                      </div>
+                      <div className="space-y-2 text-sm border-t border-[var(--border)] pt-4">
+                        {selectedInvoice.items.map((item, i) => (
+                          <div key={i} className="flex justify-between gap-3">
+                            <span className="text-[var(--text-muted)]">{item.productName} × {item.qty}</span>
+                            <span className="text-[var(--text)]">₹{(item.qty * item.price).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-[var(--border)] mt-4 pt-4 space-y-2 text-sm">
+                        <div className="flex justify-between text-[var(--text-muted)]">
+                          <span>Subtotal</span>
+                          <span>₹{selectedInvoice.subtotal.toFixed(2)}</span>
+                        </div>
+                        {selectedInvoice.discount > 0 && (
+                          <div className="flex justify-between text-red-400">
+                            <span>Discount</span>
+                            <span>- ₹{selectedInvoice.discount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {selectedInvoice.deliveryCharge > 0 && (
+                          <div className="flex justify-between text-[var(--text-muted)]">
+                            <span>Delivery</span>
+                            <span>₹{selectedInvoice.deliveryCharge.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-lg font-bold">
+                          <span>Grand Total</span>
+                          <span className="text-gold">₹{selectedInvoice.grandTotal.toFixed(2)}</span>
+                        </div>
+                        {selectedInvoice.advanceReceived > 0 && (
+                          <>
+                            <div className="flex justify-between text-blue-400">
+                              <span>Advance Paid</span>
+                              <span>₹{selectedInvoice.advanceReceived.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-lg font-bold border-t border-[var(--border)] pt-2">
+                              <span>Balance Due</span>
+                              <span className="text-red-400">₹{selectedInvoice.balanceDue.toFixed(2)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-5">
+                        <button onClick={() => printInvoice(selectedInvoice)} className="flex-1 bg-gold text-black font-semibold py-3 rounded-xl hover:bg-gold-light transition-all">Print / Save PDF</button>
+                        <button onClick={() => downloadInvoice(selectedInvoice)} className="flex-1 bg-white/10 text-[var(--text)] font-semibold py-3 rounded-xl hover:bg-white/15 transition-all">Download HTML</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )}
 
-      {selectedInvoice && (
-        <div className="glass rounded-2xl p-6">
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <p className="text-xs tracking-[0.3em] uppercase text-gold mb-1">Preview</p>
-              <h3 className="font-serif text-xl font-bold text-[var(--text)]">{selectedInvoice.invoiceNo}</h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{selectedInvoice.buyerName}</p>
-            </div>
-            <button onClick={() => setSelectedInvoice(null)} className="text-[var(--text-muted)] hover:text-red-400"><X size={18} /></button>
-          </div>
-
-          <div className="space-y-2 text-sm border-t border-[var(--border)] pt-4">
-            {selectedInvoice.items.map((item, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                <span className="text-[var(--text-muted)]">{item.productName} × {item.qty}</span>
-                <span className="text-[var(--text)]">₹{(item.qty * item.price).toFixed(2)}</span>
+            {/* SUBSCRIBERS TAB */}
+            {tab === 'subscribers' && (
+              <div className="space-y-4">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Total Subscribers: <span className="text-gold font-semibold">{subscribers.length}</span>
+                </p>
+                {subscribers.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Mail size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
+                    <p className="text-[var(--text-muted)] italic">No newsletter subscribers yet.</p>
+                  </div>
+                ) : (
+                  subscribers.map(sub => (
+                    <div key={sub.id} className="glass rounded-2xl p-5 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[var(--text)] font-medium">{sub.email}</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1">Source: {sub.source || "newsletter"}</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1">
+                          Date: {sub.createdAt?.toDate ? sub.createdAt.toDate().toLocaleString("en-IN") : "Not available"}
+                        </p>
+                      </div>
+                      <button onClick={() => deleteSubscriber(sub.id)} className="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
+            )}
 
-          <div className="border-t border-[var(--border)] mt-4 pt-4 space-y-2 text-sm">
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Subtotal</span><span>₹{selectedInvoice.subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Delivery</span><span>₹{selectedInvoice.deliveryCharge.toFixed(2)}</span></div>
-            <div className="flex justify-between text-[var(--text-muted)]"><span>Discount</span><span>- ₹{selectedInvoice.discount.toFixed(2)}</span></div>
-            <div className="flex justify-between text-lg font-bold"><span>Total</span><span className="text-gold">₹{selectedInvoice.grandTotal.toFixed(2)}</span></div>
-          </div>
+            {/* WHATSAPP LEADS TAB */}
+            {tab === 'whatsapp' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Total Leads: <span className="text-gold font-semibold">{whatsappClicks.length}</span>
+                    </p>
+                    <div className="flex gap-4 mt-1 text-xs flex-wrap">
+                      <span className="text-yellow-400">New: {whatsappClicks.filter(w => w.status === 'new').length}</span>
+                      <span className="text-blue-400">Contacted: {whatsappClicks.filter(w => w.status === 'contacted').length}</span>
+                      <span className="text-green-400">Ordered: {whatsappClicks.filter(w => w.status === 'ordered').length}</span>
+                      <span className="text-purple-400">Converted: {whatsappClicks.filter(w => w.status === 'converted').length}</span>
+                      <span className="text-red-400">Lost: {whatsappClicks.filter(w => w.status === 'lost').length}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => window.open('/whatsapp-order', '_blank')}
+                    className="text-sm bg-green-500/10 text-green-400 px-4 py-2 rounded-xl hover:bg-green-500/20 transition-all"
+                  >
+                    + New WhatsApp Order
+                  </button>
+                </div>
 
-          <div className="flex gap-2 mt-5">
-            <button onClick={() => printInvoice(selectedInvoice)} className="flex-1 bg-gold text-black font-semibold py-3 rounded-xl hover:bg-gold-light transition-all">Print / Save PDF</button>
-            <button onClick={() => downloadInvoice(selectedInvoice)} className="flex-1 bg-white/10 text-[var(--text)] font-semibold py-3 rounded-xl hover:bg-white/15 transition-all">Download HTML</button>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-)}
-{tab === 'subscribers' && (
-  <div className="space-y-4">
-    <p className="text-sm text-[var(--text-muted)]">
-      Total Subscribers:{" "}
-      <span className="text-gold font-semibold">{subscribers.length}</span>
-    </p>
+                {whatsappClicks.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Send size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
+                    <p className="text-[var(--text-muted)] italic">No WhatsApp leads yet.</p>
+                  </div>
+                ) : (
+                  whatsappClicks.map(click => (
+                    <div key={click.id} className="glass rounded-2xl p-6">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <p className="font-semibold text-[var(--text)]">{click.productName}</p>
+                            {click.volume && (
+                              <span className="text-xs bg-gold/10 text-gold px-2 py-1 rounded-full">
+                                {click.volume}ml
+                              </span>
+                            )}
+                            <span className="text-xs text-[var(--text-muted)]">₹{click.productPrice}</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              click.source === 'product_page' ? 'bg-blue-400/10 text-blue-400' :
+                              click.source === 'cart' ? 'bg-purple-400/10 text-purple-400' :
+                              'bg-gray-400/10 text-gray-400'
+                            }`}>
+                              {click.source}
+                            </span>
+                          </div>
+                          {click.customerName && (
+                            <p className="text-sm text-[var(--text)] mt-2">👤 {click.customerName}</p>
+                          )}
+                          {click.phone && (
+                            <a href={`https://wa.me/91${click.phone}`} target="_blank" rel="noopener noreferrer" 
+                               className="text-sm text-green-400 hover:text-green-300 flex items-center gap-1">
+                              📞 {click.phone}
+                            </a>
+                          )}
+                          <p className="text-xs text-[var(--text-muted)] mt-1">
+                            {new Date(click.createdAt).toLocaleString('en-IN')}
+                          </p>
+                          {click.notes && (
+                            <p className="text-xs text-gold mt-1">📝 {click.notes}</p>
+                          )}
+                        </div>
 
-    {subscribers.length === 0 ? (
-      <div className="text-center py-20">
-        <Mail size={48} className="text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
-        <p className="text-[var(--text-muted)] italic">
-          No newsletter subscribers yet.
-        </p>
-      </div>
-    ) : (
-      subscribers.map(sub => (
-        <div
-          key={sub.id}
-          className="glass rounded-2xl p-5 flex items-center justify-between gap-4"
-        >
-          <div>
-            <p className="text-[var(--text)] font-medium">{sub.email}</p>
+                        <div className="flex flex-col gap-2 min-w-[140px]">
+                          <select
+                            value={click.status}
+                            onChange={async e => {
+                              const newStatus = e.target.value as WhatsAppClick['status'];
+                              await updateWhatsAppStatus(click.id, newStatus);
+                            }}
+                            className={`text-xs px-3 py-1.5 rounded-lg border ${
+                              click.status === 'new' ? 'border-yellow-400/30 bg-yellow-400/10 text-yellow-400' :
+                              click.status === 'contacted' ? 'border-blue-400/30 bg-blue-400/10 text-blue-400' :
+                              click.status === 'ordered' ? 'border-green-400/30 bg-green-400/10 text-green-400' :
+                              click.status === 'converted' ? 'border-purple-400/30 bg-purple-400/10 text-purple-400' :
+                              'border-red-400/30 bg-red-400/10 text-red-400'
+                            }`}
+                          >
+                            <option value="new">New</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="ordered">Ordered</option>
+                            <option value="converted">Converted</option>
+                            <option value="lost">Lost</option>
+                          </select>
 
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              Source: {sub.source || "newsletter"}
-            </p>
-
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              Date:{" "}
-              {sub.createdAt?.toDate
-                ? sub.createdAt.toDate().toLocaleString("en-IN")
-                : "Not available"}
-            </p>
-          </div>
-
-          <button
-            onClick={() => deleteSubscriber(sub.id)}
-            className="text-red-400 hover:text-red-300 text-sm"
-          >
-            Delete
-          </button>
-        </div>
-      ))
-    )}
-  </div>
-)}
+                          <div className="flex gap-2">
+                            <a
+                              href={click.whatsappLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 text-xs bg-green-500/10 text-green-400 px-3 py-1.5 rounded-lg hover:bg-green-500/20 transition-all text-center"
+                            >
+                              WhatsApp
+                            </a>
+                            <button
+                              onClick={() => {
+                                const notes = prompt('Add note:', click.notes || '');
+                                if (notes !== null) {
+                                  updateWhatsAppStatus(click.id, click.status, notes);
+                                }
+                              }}
+                              className="text-xs bg-gold/10 text-gold px-2 py-1.5 rounded-lg hover:bg-gold/20 transition-all"
+                            >
+                              📝
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
 
+      {/* Order Modal */}
       {showOrderModal && (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-2xl font-bold text-[var(--text)]">Create New Order</h2>
-              <button
-                onClick={() => setShowOrderModal(false)}
-                className="text-[var(--text-muted)] hover:text-red-400"
-              >
+              <button onClick={() => setShowOrderModal(false)} className="text-[var(--text-muted)] hover:text-red-400">
                 <X size={20} />
               </button>
             </div>
-
             <div className="space-y-4">
               <select
                 value={selectedUserId}
@@ -1418,9 +1731,7 @@ const pendingAmount = orders
               >
                 <option value="">Select user</option>
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} - {u.email}
-                  </option>
+                  <option key={u.id} value={u.id}>{u.name} - {u.email}</option>
                 ))}
               </select>
 
@@ -1454,20 +1765,14 @@ const pendingAmount = orders
                       placeholder="Price"
                       className="flex-1 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
                     />
-                    <button
-                      onClick={() => removeItem(index)}
-                      className="px-3 rounded-xl bg-red-500/10 text-red-400"
-                    >
+                    <button onClick={() => removeItem(index)} className="px-3 rounded-xl bg-red-500/10 text-red-400">
                       <X size={15} />
                     </button>
                   </div>
                 </div>
               ))}
 
-              <button
-                onClick={addItem}
-                className="text-sm text-gold hover:text-gold-light transition-colors"
-              >
+              <button onClick={addItem} className="text-sm text-gold hover:text-gold-light transition-colors">
                 + Add item
               </button>
 
@@ -1505,6 +1810,7 @@ const pendingAmount = orders
         </div>
       )}
 
+      {/* Product Modal */}
       {showProductModal && (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass rounded-3xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -1512,11 +1818,7 @@ const pendingAmount = orders
               <h2 className="font-serif text-2xl font-bold text-[var(--text)]">
                 {editingProduct ? 'Edit Product' : 'Add Product'}
               </h2>
-
-              <button
-                onClick={() => setShowProductModal(false)}
-                className="text-[var(--text-muted)] hover:text-red-400"
-              >
+              <button onClick={() => setShowProductModal(false)} className="text-[var(--text-muted)] hover:text-red-400">
                 <X size={20} />
               </button>
             </div>
@@ -1529,49 +1831,42 @@ const pendingAmount = orders
                 placeholder="product-id e.g. aqua-storm"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)] disabled:opacity-60"
               />
-
               <input
                 value={productForm.name}
                 onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="Product Name"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.tagline}
                 onChange={e => setProductForm(p => ({ ...p, tagline: e.target.value }))}
                 placeholder="Tagline"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.category}
                 onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}
                 placeholder="Category"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.gender}
                 onChange={e => setProductForm(p => ({ ...p, gender: e.target.value }))}
                 placeholder="Gender"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.type}
                 onChange={e => setProductForm(p => ({ ...p, type: e.target.value }))}
                 placeholder="Type"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.image}
                 onChange={e => setProductForm(p => ({ ...p, image: e.target.value }))}
                 placeholder="/images/AquaStorm.jpeg"
                 className="md:col-span-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <textarea
                 value={productForm.description}
                 onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))}
@@ -1579,28 +1874,24 @@ const pendingAmount = orders
                 rows={3}
                 className="md:col-span-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.notes.top.join(', ')}
                 onChange={e => updateNotes('top', e.target.value)}
                 placeholder="Top notes comma separated"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.notes.middle.join(', ')}
                 onChange={e => updateNotes('middle', e.target.value)}
                 placeholder="Middle notes comma separated"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 value={productForm.notes.base.join(', ')}
                 onChange={e => updateNotes('base', e.target.value)}
                 placeholder="Base notes comma separated"
                 className="bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text)]"
               />
-
               <input
                 type="number"
                 value={productForm.stock}
@@ -1611,10 +1902,7 @@ const pendingAmount = orders
             </div>
 
             <div className="mt-6">
-              <p className="text-xs tracking-widest uppercase text-[var(--text-muted)] mb-3">
-                Volumes
-              </p>
-
+              <p className="text-xs tracking-widest uppercase text-[var(--text-muted)] mb-3">Volumes</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {productForm.volumes.map((v, i) => (
                   <div key={i} className="glass rounded-xl p-4 space-y-3">
@@ -1625,7 +1913,6 @@ const pendingAmount = orders
                       placeholder={productForm.type === 'Solid Perfume' ? 'GM' : 'ML'}
                       className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)]"
                     />
-
                     <input
                       type="number"
                       value={v.price}
@@ -1647,7 +1934,6 @@ const pendingAmount = orders
                 />
                 Bestseller
               </label>
-
               <label className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                 <input
                   type="checkbox"

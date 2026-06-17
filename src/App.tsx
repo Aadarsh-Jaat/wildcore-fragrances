@@ -1,5 +1,6 @@
 import CarDetailing from "./pages/CarDetailing";
 import CustomOrders from './pages/CustomOrders';
+import WhatsAppOrder from './pages/WhatsAppOrder';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CartProvider } from './context/CartContext';
@@ -24,9 +25,6 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import ShippingPolicy from './pages/ShippingPolicy';
 import ClothingShops from "./pages/ClothingShops";
-
-
-
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -68,11 +66,12 @@ function AnimatedRoutes() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/custom-orders" element={<CustomOrders />} />
+          <Route path="/whatsapp-order" element={<WhatsAppOrder />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/b2b/clothing-shops" element={<ClothingShops />} />
-<Route path="/b2b/car-detailing" element={<CarDetailing />} />
-<Route path="/terms" element={<Terms />} />
-<Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/b2b/car-detailing" element={<CarDetailing />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
           <Route
             path="/admin"
             element={
@@ -80,7 +79,6 @@ function AnimatedRoutes() {
                 <Admin />
               </AdminRoute>
             }
-          
           />
         </Routes>
       </motion.div>
@@ -91,7 +89,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-       <ScrollToTop /> 
+      <ScrollToTop /> 
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
