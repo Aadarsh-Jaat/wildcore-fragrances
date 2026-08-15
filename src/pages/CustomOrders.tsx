@@ -145,7 +145,7 @@ Requirement:
 ${inquiry.message}`;
 
   window.open(
-    `https://wa.me/917056713252?text=${encodeURIComponent(msg)}`,
+    `https://wa.me/918295713252?text=${encodeURIComponent(msg)}`,
     '_blank'
   );
 

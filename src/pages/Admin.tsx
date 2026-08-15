@@ -730,7 +730,7 @@ export default function Admin() {
         <div class="tagline">FRAGRANCES · Wear The Wild</div>
         <div class="company-contact">
           <span>📧 wildcorefragrances@gmail.com</span>
-          <span>📞 +91 7056713252</span>
+          <span>📞 +91 8295713252</span>
           <span>📍 Panipat, Haryana</span>
         </div>
       </div>

@@ -23,7 +23,7 @@ import { useToast } from '../context/ToastContext';
 import ProductCard from '../components/ProductCard';
 import { trackWhatsAppClick } from '../services/whatsappTracker';
 
-const WHATSAPP = '917056713252';
+const WHATSAPP = '918295713252';
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, Instagram, Mail, MapPin, Phone, Send, CheckCircle } from 'lucide-react';
 
-const WHATSAPP = '917056713252';
+const WHATSAPP = '918295713252';
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
@@ -185,7 +185,7 @@ export default function Contact() {
                 <Phone size={20} className="text-[var(--text-muted)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text)]">+917056713252</p>
+                <p className="text-sm font-semibold text-[var(--text)]">+918295713252</p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">Sun – Thu, 9am – 6pm GST</p>
               </div>
             </div>

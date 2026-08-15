@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, X, ShoppingBag, MessageCircle, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-const WHATSAPP = '917056713252';
+const WHATSAPP = '918295713252';
 
 export default function Cart() {
   const { items, removeItem, updateQty, total, clearCart } = useCart();

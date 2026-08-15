@@ -10,7 +10,7 @@ interface OrderItem {
   price: number;
 }
 
-const WHATSAPP = '917056713252';
+const WHATSAPP = '918295713252';
 
 export default function WhatsAppOrder() {
   const [step, setStep] = useState(1);

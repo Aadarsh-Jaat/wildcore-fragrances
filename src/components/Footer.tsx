@@ -13,7 +13,7 @@ import { db } from "../firebase";
 import { useToast } from '../context/ToastContext';
 
 
-const WHATSAPP = '917056713252';
+const WHATSAPP = '918295713252';
 
 export default function Footer() {
   const [email, setEmail] = useState('');

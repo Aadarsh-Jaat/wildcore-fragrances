@@ -11,7 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const WHATSAPP = "917056713252";
+const WHATSAPP = "918295713252";
 
 const detailingProjects = [
   {
@@ -31,6 +31,7 @@ const detailingProjects = [
       "Bulk supply",
     ],
   },
+
   {
     brand: "Sahil Auto Accessories",
     type: "Car Accessories Store",
@@ -48,6 +49,7 @@ const detailingProjects = [
       "Bulk manufacturing",
     ],
   },
+
   {
     brand: "Detailing Korner",
     type: "Car Detailing Studio",
@@ -65,13 +67,14 @@ const detailingProjects = [
       "Customer giveaway perfumes",
     ],
   },
+
   {
     brand: "Magic Car Wash",
     type: "Car Wash & Detailing Studio",
     location: "Sonipat, Haryana",
     images: [
-      "/images/magiccarwash1.jpg",
-      "/images/magiccarwash2.png",
+      "/images/magiccarwash2copy.jpg",
+      "/images/magiccarwash1.png",
     ],
     description:
       "Custom fragrance branding for a premium car wash studio to enhance customer experience.",
@@ -84,41 +87,63 @@ const detailingProjects = [
   },
 ];
 
-const ImageCarousel = ({ images, brand }: { images: string[]; brand: string }) => {
+/* =========================================================
+   IMAGE CAROUSEL
+   Same style/size as the Clothing Brands project cards
+   ========================================================= */
+
+const ImageCarousel = ({
+  images,
+  brand,
+}: {
+  images: string[];
+  brand: string;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const timerRef = useRef<number | null>(null); // ✅ fixed type
+
+  const timerRef = useRef<number | null>(null);
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+    setCurrentIndex(
+      (prev) => (prev - 1 + images.length) % images.length
+    );
   };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
   };
 
+  /* Auto slide */
   useEffect(() => {
+    if (images.length <= 1) return;
+
     if (isHovering) {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
+
       return;
     }
 
-    timerRef.current = setInterval(() => {
-      nextSlide();
-    }, 4000);
+    timerRef.current = window.setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 4500);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
     };
-  }, [isHovering]);
+  }, [isHovering, images.length]);
 
   if (!images || images.length === 0) {
     return (
-      <div className="w-full h-72 bg-[var(--bg3)] flex items-center justify-center text-[var(--text-muted)]">
+      <div className="w-full h-80 bg-[var(--bg3)] flex items-center justify-center text-[var(--text-muted)]">
         No image
       </div>
     );
@@ -126,10 +151,11 @@ const ImageCarousel = ({ images, brand }: { images: string[]; brand: string }) =
 
   return (
     <div
-      className="relative w-full h-72 overflow-hidden bg-[var(--bg3)] rounded-t-3xl"
+      className="relative w-full h-80 overflow-hidden bg-[var(--bg3)] rounded-t-3xl group"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
+      {/* Image */}
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
@@ -138,47 +164,136 @@ const ImageCarousel = ({ images, brand }: { images: string[]; brand: string }) =
           loading="lazy"
           decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.6, ease: "easeInOut" }}
+          initial={{
+            opacity: 0,
+            scale: 1.03,
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.99,
+          }}
+          transition={{
+            duration: 0.5,
+            ease: "easeInOut",
+          }}
         />
       </AnimatePresence>
 
-      <div
-        className={`absolute inset-y-0 left-0 flex items-center px-2 transition-opacity duration-300 ${
-          isHovering ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          onClick={prevSlide}
-          className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 backdrop-blur-sm transition-all"
-        >
-          <ChevronLeft size={20} />
-        </button>
-      </div>
-      <div
-        className={`absolute inset-y-0 right-0 flex items-center px-2 transition-opacity duration-300 ${
-          isHovering ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          onClick={nextSlide}
-          className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 backdrop-blur-sm transition-all"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
+      {/* Dark gradient for controls */}
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/30 via-transparent to-black/20" />
 
+      {/* Image counter */}
       {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute top-4 right-4 z-20">
+          <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-xs font-medium">
+            {currentIndex + 1} / {images.length}
+          </div>
+        </div>
+      )}
+
+      {/* LEFT ARROW */}
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+          aria-label="Previous image"
+          className="
+            absolute
+            left-4
+            top-1/2
+            -translate-y-1/2
+            z-20
+            w-9
+            h-9
+            rounded-full
+            bg-black/55
+            backdrop-blur-md
+            border
+            border-white/15
+            text-white
+            flex
+            items-center
+            justify-center
+            opacity-0
+            group-hover:opacity-100
+            transition-all
+            duration-300
+            hover:bg-black/75
+            hover:scale-105
+          "
+        >
+          <ChevronLeft size={17} />
+        </button>
+      )}
+
+      {/* RIGHT ARROW */}
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+          aria-label="Next image"
+          className="
+            absolute
+            right-4
+            top-1/2
+            -translate-y-1/2
+            z-20
+            w-9
+            h-9
+            rounded-full
+            bg-black/55
+            backdrop-blur-md
+            border
+            border-white/15
+            text-white
+            flex
+            items-center
+            justify-center
+            opacity-0
+            group-hover:opacity-100
+            transition-all
+            duration-300
+            hover:bg-black/75
+            hover:scale-105
+          "
+        >
+          <ChevronRight size={17} />
+        </button>
+      )}
+
+      {/* DOTS */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
           {images.map((_, index) => (
             <button
               key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index === currentIndex ? "bg-gold w-6" : "bg-white/60 hover:bg-white/80"
-              }`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToSlide(index);
+              }}
+              aria-label={`Go to image ${index + 1}`}
+              className={`
+                h-1.5
+                rounded-full
+                transition-all
+                duration-300
+                ${
+                  index === currentIndex
+                    ? "w-6 bg-white"
+                    : "w-1.5 bg-white/60 hover:bg-white/90"
+                }
+              `}
             />
           ))}
         </div>
@@ -187,6 +302,10 @@ const ImageCarousel = ({ images, brand }: { images: string[]; brand: string }) =
   );
 };
 
+/* =========================================================
+   MAIN PAGE
+   ========================================================= */
+
 export default function CarDetailing() {
   const msg =
     "Hi Wildcore Fragrances! I want custom car hanging perfumes for my detailing studio / accessories shop.";
@@ -194,68 +313,140 @@ export default function CarDetailing() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pt-28 pb-20 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
+
+        {/* Back */}
         <Link
           to="/custom-orders"
-          className="text-sm text-[var(--text-muted)] hover:text-gold transition-colors inline-flex items-center gap-1 mb-10"
+          className="
+            inline-flex
+            items-center
+            gap-2
+            text-sm
+            text-[var(--text-muted)]
+            hover:text-gold
+            transition-colors
+            mb-10
+          "
         >
           <ArrowLeft size={15} />
           Back to B2B
         </Link>
 
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+        {/* PAGE HEADER */}
+        <motion.section
+          className="text-center mb-10"
+          initial={{
+            opacity: 0,
+            y: 30,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.6,
+          }}
         >
-          <p className="text-xs tracking-[0.4em] text-gold uppercase mb-3">Our Work</p>
-          <h1 className="font-serif text-4xl md:text-6xl font-bold text-[var(--text)]">
+          <p className="text-xs tracking-[0.4em] text-gold uppercase mb-3">
+            Our Work
+          </p>
+
+          <h1 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)]">
             Car Business Projects
           </h1>
-          <p className="text-[var(--text-muted)] max-w-2xl mx-auto mt-4">
-            Wildcore creates custom hanging perfumes and fragrance cards for
-            car detailing studios, showrooms, and accessories shops.
+
+          <p className="text-[var(--text-muted)] mt-4 max-w-2xl mx-auto">
+            A showcase of custom fragrance branding created by Wildcore for
+            car detailing studios, accessories shops, car washes, and
+            automotive businesses.
           </p>
-        </motion.div>
+        </motion.section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-          {detailingProjects.map((project, i) => (
-            <motion.div
-              key={project.brand}
-              className="glass glass-hover rounded-3xl overflow-hidden flex flex-col"
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <ImageCarousel images={project.images} brand={project.brand} />
-              <div className="p-6 flex flex-col flex-1">
-                <p className="text-xs tracking-[0.3em] text-gold uppercase mb-2">
-                  {project.type}
-                </p>
-                <h3 className="font-serif text-2xl font-bold text-[var(--text)] mb-1">
-                  {project.brand}
-                </h3>
-                <p className="text-sm text-[var(--text-muted)] mb-3">
-                  📍 {project.location}
-                </p>
-                <p className="text-[var(--text-muted)] leading-relaxed text-sm mb-4">
-                  {project.description}
-                </p>
-                <ul className="space-y-1.5 text-sm text-[var(--text-muted)] mb-4 flex-1">
-                  {project.work.map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <span className="text-gold">✦</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {/* =================================================
+            PROJECT CARDS
+            2 COLUMNS — SAME FEEL AS CLOTHING PAGE
+           ================================================= */}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <section className="mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {detailingProjects.map((project, i) => (
+              <motion.div
+                key={project.brand}
+                className="
+                  glass
+                  glass-hover
+                  rounded-3xl
+                  overflow-hidden
+                  flex
+                  flex-col
+                "
+                initial={{
+                  opacity: 0,
+                  y: 30,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay: i * 0.1,
+                  duration: 0.5,
+                }}
+                viewport={{
+                  once: true,
+                }}
+              >
+                {/* SLIDING IMAGE */}
+                <ImageCarousel
+                  images={project.images}
+                  brand={project.brand}
+                />
+
+                {/* CONTENT */}
+                <div className="p-8">
+
+                  <p className="text-xs tracking-[0.3em] text-gold uppercase mb-3">
+                    {project.type}
+                  </p>
+
+                  <h3 className="font-serif text-3xl font-bold text-[var(--text)] mb-2">
+                    {project.brand}
+                  </h3>
+
+                  <p className="text-sm text-[var(--text-muted)] mb-4">
+                    {project.location}
+                  </p>
+
+                  <p className="text-[var(--text-muted)] leading-relaxed mb-5">
+                    {project.description}
+                  </p>
+
+                  <ul className="space-y-2 text-sm text-[var(--text-muted)]">
+                    {project.work.map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-start gap-2"
+                      >
+                        <span className="text-gold">
+                          •
+                        </span>
+
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* =================================================
+            WHAT WE OFFER
+           ================================================= */}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {[
             {
               icon: Car,
@@ -275,18 +466,49 @@ export default function CarDetailing() {
           ].map((item, i) => (
             <motion.div
               key={item.title}
-              className="glass glass-hover rounded-3xl p-8 text-center"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              viewport={{ once: true }}
+              className="
+                glass
+                glass-hover
+                rounded-3xl
+                p-8
+                text-center
+              "
+              initial={{
+                opacity: 0,
+                y: 30,
+              }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{
+                delay: i * 0.1,
+              }}
+              viewport={{
+                once: true,
+              }}
             >
-              <div className="h-14 w-14 rounded-xl bg-gold/10 text-gold flex items-center justify-center mx-auto mb-5">
-                <item.icon size={28} />
+              <div
+                className="
+                  h-14
+                  w-14
+                  rounded-xl
+                  bg-gold/10
+                  text-gold
+                  flex
+                  items-center
+                  justify-center
+                  mx-auto
+                  mb-5
+                "
+              >
+                <item.icon size={26} />
               </div>
+
               <h3 className="font-serif text-xl font-bold text-[var(--text)] mb-3">
                 {item.title}
               </h3>
+
               <p className="text-sm text-[var(--text-muted)] leading-relaxed">
                 {item.text}
               </p>
@@ -294,25 +516,63 @@ export default function CarDetailing() {
           ))}
         </div>
 
+        {/* =================================================
+            CTA
+           ================================================= */}
+
         <motion.div
           className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+          }}
         >
-          <h2 className="font-serif text-3xl md:text-4xl font-bold text-[var(--text)] mb-4">
-            Want custom car perfumes for your business?
+          <p className="text-xs tracking-[0.4em] text-gold uppercase mb-4">
+            Custom Work For Automotive Businesses
+          </p>
+
+          <h2 className="font-serif text-4xl md:text-5xl font-bold text-[var(--text)] mb-4">
+            Want Custom Car Perfumes?
           </h2>
+
+          <p className="text-[var(--text-muted)] max-w-2xl mx-auto mb-8">
+            Tell us your business name, quantity, logo idea, and preferred
+            fragrance. We'll create a custom fragrance solution for your
+            customers.
+          </p>
+
           <a
             href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
+            className="
+              inline-flex
+              items-center
+              gap-2
+              px-8
+              py-4
+              bg-green-500
+              text-white
+              font-semibold
+              rounded-xl
+              hover:bg-green-400
+              transition-all
+              shadow-lg
+              shadow-green-500/20
+            "
           >
             <MessageCircle size={18} />
             Enquire on WhatsApp
           </a>
         </motion.div>
+
       </div>
     </div>
   );
