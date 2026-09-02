@@ -31,7 +31,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] pt-24 pb-20 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           className="text-center mb-12"
@@ -49,107 +49,12 @@ export default function Contact() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* LEFT: Contact Info - 2 columns out of 5 */}
+          {/* LEFT: Form - 3 columns */}
           <motion.div
-            className="lg:col-span-2 space-y-4"
+            className="lg:col-span-3"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            {/* WhatsApp */}
-            <a
-              href={`https://wa.me/${WHATSAPP}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
-            >
-              <div className="w-11 h-11 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center flex-shrink-0">
-                <MessageCircle size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-[var(--text-muted)]">Chat on</p>
-                <p className="font-semibold text-[var(--text)] text-sm truncate">WhatsApp</p>
-                <p className="text-xs text-green-400 truncate">Quick replies, usually within an hour</p>
-              </div>
-            </a>
-
-            {/* Instagram */}
-            <a
-              href="https://instagram.com/wild_core_fragrances"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
-            >
-              <div className="w-11 h-11 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center flex-shrink-0">
-                <Instagram size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-[var(--text-muted)]">Follow Us</p>
-                <p className="font-semibold text-[var(--text)] text-sm truncate">@wildcorefragrances</p>
-                <p className="text-xs text-[var(--text-muted)] truncate">Follow for drops and inspiration</p>
-              </div>
-            </a>
-
-            {/* Email */}
-            <a
-              href="mailto:hello@wildcorefragrances.com"
-              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
-            >
-              <div className="w-11 h-11 rounded-xl bg-gold/10 text-gold flex items-center justify-center flex-shrink-0">
-                <Mail size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-[var(--text-muted)]">Email Us</p>
-                <p className="font-semibold text-[var(--text)] text-sm truncate">hello@wildcorefragrances.com</p>
-                <p className="text-xs text-[var(--text-muted)] truncate">We respond within 24 hours</p>
-              </div>
-            </a>
-
-            {/* Phone */}
-            <a
-              href="tel:+918295713252"
-              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
-            >
-              <div className="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
-                <Phone size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-[var(--text-muted)]">Call Us</p>
-                <p className="font-semibold text-[var(--text)] text-sm truncate">+91 8295713252</p>
-                <p className="text-xs text-[var(--text-muted)] truncate">Sun-Thu, 9am-6pm GST</p>
-              </div>
-            </a>
-
-            {/* Location */}
-            <div className="glass rounded-2xl p-4 flex items-center gap-4 overflow-hidden">
-              <div className="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
-                <MapPin size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-[var(--text-muted)]">Visit Us</p>
-                <p className="font-semibold text-[var(--text)] text-sm truncate">Panipat, India</p>
-                <p className="text-xs text-[var(--text-muted)] truncate">Worldwide shipping available</p>
-              </div>
-            </div>
-
-            {/* WhatsApp CTA Button */}
-            <a
-              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hi Wildcore! I'd like to know more about your fragrances.")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] text-sm"
-            >
-              <MessageCircle size={18} />
-              Start WhatsApp Chat
-            </a>
-          </motion.div>
-
-          {/* RIGHT: Contact Form - 3 columns out of 5 */}
-          <motion.div
-            className="lg:col-span-3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="glass rounded-3xl p-6 md:p-8">
               <h2 className="font-serif text-2xl font-bold text-[var(--text)] mb-6">
@@ -240,6 +145,101 @@ export default function Contact() {
                 </form>
               )}
             </div>
+          </motion.div>
+
+          {/* RIGHT: Contact Info Cards - 2 columns */}
+          <motion.div
+            className="lg:col-span-2 space-y-3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            {/* WhatsApp - FULL DETAILS */}
+            <a
+              href={`https://wa.me/${WHATSAPP}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
+            >
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center flex-shrink-0">
+                <MessageCircle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Chat on</p>
+                <p className="font-semibold text-[var(--text)] text-sm">WhatsApp</p>
+                <p className="text-[10px] text-green-400 truncate">Quick replies, usually within an hour</p>
+              </div>
+            </a>
+
+            {/* Instagram */}
+            <a
+              href="https://instagram.com/wild_core_fragrances"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
+            >
+              <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center flex-shrink-0">
+                <Instagram size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Follow Us</p>
+                <p className="font-semibold text-[var(--text)] text-sm truncate">@wildcorefragrances</p>
+                <p className="text-[10px] text-[var(--text-muted)] truncate">Follow for drops and inspiration</p>
+              </div>
+            </a>
+
+            {/* Email */}
+            <a
+              href="mailto:hello@wildcorefragrances.com"
+              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center flex-shrink-0">
+                <Mail size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Email Us</p>
+                <p className="font-semibold text-[var(--text)] text-sm truncate">hello@wildcorefragrances.com</p>
+                <p className="text-[10px] text-[var(--text-muted)] truncate">We respond within 24 hours</p>
+              </div>
+            </a>
+
+            {/* Phone */}
+            <a
+              href="tel:+918295713252"
+              className="glass glass-hover rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] block overflow-hidden"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
+                <Phone size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Call Us</p>
+                <p className="font-semibold text-[var(--text)] text-sm">+91 8295713252</p>
+                <p className="text-[10px] text-[var(--text-muted)] truncate">Sun-Thu, 9am-6pm GST</p>
+              </div>
+            </a>
+
+            {/* Location */}
+            <div className="glass rounded-2xl p-4 flex items-center gap-4 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
+                <MapPin size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Visit Us</p>
+                <p className="font-semibold text-[var(--text)] text-sm">Panipat, India</p>
+                <p className="text-[10px] text-[var(--text-muted)] truncate">Worldwide shipping available</p>
+              </div>
+            </div>
+
+            {/* WhatsApp CTA Button */}
+            <a
+              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hi Wildcore! I'd like to know more about your fragrances.")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] hover:bg-[#1fc255] text-white font-semibold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] text-sm"
+            >
+              <MessageCircle size={16} />
+              Start WhatsApp Chat
+            </a>
           </motion.div>
         </div>
       </div>
